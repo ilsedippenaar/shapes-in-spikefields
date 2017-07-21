@@ -1,0 +1,33 @@
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+
+source('config.R')
+```
+
+## t-SNE Electrode Embedding
+This is just a t-SNE embedding of the mean condition traces for each electrode.
+TODO: Look at embedding of the mean LFP at each instance of a condition (how much do conditions vary?)
+```{r}
+d <- read.csv(file.path(data_dir, 'tsne.csv'))
+d %>% ggplot(aes(x,y,color=labels,label=electrode_num)) +
+    geom_text() +
+    theme_minimal() +
+    ggsave(file.path(plot_save_dir, 'tsne_plot_r.png'))
+```
+
+## Reaction Times and LFP Slope
+Checking to see if the slope of the mean LFP signal ranging from 200 ms prior to a shape stimulus to the saccade is correlated with the reaction time (the time between the shape and saccade).
+```{r}
+d <- read.csv(file.path(data_dir, 'slope_data.csv'))
+colnames(d) <- c('slopes', 'rxn_times')
+mod <- lm(rxn_times ~ slopes, d)
+summary(mod)
+ggplot(d, aes(slopes, rxn_times)) + 
+  geom_point() +
+  theme_minimal()
+```
+
+So, not much to be seen here...
+
+

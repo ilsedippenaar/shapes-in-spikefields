@@ -1,0 +1,67 @@
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(ggplot2)
+library(Matrix)
+
+source('config.R')
+```
+
+```{r}
+d <- read.csv(file.path(data_dir, 'test_nev.csv'), stringsAsFactors = F, header = F)
+colnames(d) <- 1:ncol(d)
+electrodes <- as.numeric(read.csv(file.path(data_dir, "test_nev_electrodes.csv"), stringsAsFactors = F, header = F)[1,])
+```
+
+```{r}
+d[, apply(d, 2, min) < -500] %>%
+  mutate(time = 0:(nrow(d)-1)/30000) %>%
+  gather(waveform_id, signal, -time) %>%
+  ggplot(aes(time, signal, col=waveform_id)) +
+  stat_smooth(method = "loess")
+```
+```{r}
+as.numeric(names(d[,apply(d, 2, min) < -300]))
+```
+```{r}
+A <- outer(1:10, 1:10)
+melt(A) %>% ggplot(aes(Var1, -Var2, fill=value)) + geom_tile()
+```
+```{r}
+as.data.frame(cbind(electrodes, apply(d, 2, sd))) %>%
+  mutate(id = electrodes, stddev = V2) %>%
+  select(-c(electrodes, V2)) %>%
+  group_by(id) %>%
+  summarize(val = mean(stddev)) %>%
+  mutate(x = (id-1) %/% 8, y = (id-1) %% 8) %>%
+  ggplot(aes(x, y, fill=val)) +
+  geom_tile() + 
+  theme_void()
+```
+```{r}
+n <- nrow(d)
+time <- 0:(n-1) / 30000
+tmp <- as.data.frame(t(d)) %>%
+  na.omit() %>%
+  mutate(id = electrodes) %>%
+  group_by(id) %>%
+  summarise_each(funs(mean, sd))
+
+out <- data.frame(matrix(nrow=0, ncol=4))
+names(out) <- c("id", "time", "m", "stddev")
+for (i in 1:length(tmp$id)) {
+  out <- rbind(out, 
+               data.frame(id = rep(tmp$id[i], n), time = time, 
+                          m = as.numeric(tmp[i,2:(n+1)]), stddev = as.numeric(tmp[i,(n+2):ncol(tmp)]))
+  )
+}
+out %>%
+  mutate(x = (id-1) %/% 6, y = (id-1) %% 6) %>%
+  ggplot(aes(time, m)) + 
+  stat_smooth(method="loess") +
+  facet_grid(y~x) +
+  coord_fixed(ratio = 1/130000) +
+  theme_void()
+```
+
