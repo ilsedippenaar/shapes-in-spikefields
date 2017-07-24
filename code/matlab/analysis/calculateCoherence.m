@@ -46,14 +46,14 @@ if strcmp(args.method, 'welch')
   else
     num_points = (args.num_fft+1)/2;
   end
-  cohs = zeros(num_points, n, n);
 else
   if is_variable_len
-    cohs = zeros(2^nextpow2(args.num_fft)+1,n,n);
+    num_points = 2^(nextpow2(args.num_fft)-1)+1;
   else
-    cohs = zeros(2^nextpow2(size(lfp_slices{1},1))+1,n,n);
+    num_points = 2^nextpow2(size(lfp_slices{1},1)-1)+1;
   end
 end
+cohs = zeros(num_points, n, n);
 freqs = [];
 
 % TODO: refactor all of this
@@ -72,15 +72,15 @@ if isempty(cached_data)
             cohs(:,i,j) = cohs(:,i,j) + cxy;
             m = m + 1;
           else
-            if 2^nextpow2(lfp_slices{i}{k}) < args.num_fft
+            if nextpow2(numel(lfp_slices{i}{k})) >= nextpow2(args.num_fft)
               mt_params.tapers = tapers{k};
-              [cxy,~,~,~,~,f] = coherencyc(lfp_slices{i}, lfp_slices{j}, mt_params);
-              factor = numel(cxy)-1 / arg.num_fft;
+              [cxy,~,~,~,~,f] = coherencyc(single(lfp_slices{i}{k}), single(lfp_slices{j}{k}), mt_params);
+              factor = (numel(cxy)-1) / (num_points-1);
               if factor ~= 1
                 cxy = downsample(cxy, factor);
                 f = downsample(f, factor);
               end
-              cohs(:,i,j) = cxy;
+              cohs(:,i,j) = cohs(:,i,j) + cxy;
               m = m + 1;
             end
           end
