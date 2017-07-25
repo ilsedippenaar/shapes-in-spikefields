@@ -1,4 +1,4 @@
-function varargout=plotCoherenceVariance(cohs, freqs)
+function [plts, all_cohs, freqs]=plotCoherenceVariance(cohs, freqs)
 all_cohs = zeros(size(cohs, 1), nchoosek(size(cohs,2), 2));
 idx = 1;
 for i=1:size(cohs,2)
@@ -8,33 +8,16 @@ for i=1:size(cohs,2)
   end
 end
 
-if nargout ~= 0
-  fig = figure('Visible', 'off');
-else
-  figure;
-end
+plts = gobjects(1,2);
+plts(1) = figure('Visible', 'off');
 plotMeanAndStds(all_cohs, 'x', freqs);
 title('Mean of all coherences');
 xlabel('Frequency (Hz)');
 ylabel('Coherence');
 
-if nargout ~= 0
-  fig_stds = figure('Visible', 'off');
-else
-  figure;
-end
+plts(2) = figure('Visible', 'off');
 plot(freqs, std(all_cohs,0,2) / sqrt(size(all_cohs,2)-1));
 title(sprintf('SEM of coherence, N=%d', size(all_cohs,2)));
 xlabel('Frequency (Hz)');
 ylabel('SEM');
-
-if nargout >= 1
-  varargout{1} = [fig fig_stds];
-  if nargout >= 2
-    varargout{2} = all_cohs;
-    if nargout == 3
-      varargout{3} = freqs;
-    end
-  end
-end
 end

@@ -1,6 +1,7 @@
 ```{r, message=FALSE, warning=FALSE}
 library(ggplot2)
 library(dplyr)
+library(latex2exp)
 
 source('config.R')
 ```
@@ -30,4 +31,23 @@ ggplot(d, aes(slopes, rxn_times)) +
 
 So, not much to be seen here...
 
-
+```{r}
+d <- read.csv(file.path(data_dir, 'rxns_and_slopes.csv'), header = F, col.names = c('electrode','slope','rxn'))
+pdf(file = file.path(plot_save_dir, 'rxn_and_slopes.pdf'))
+for (i in 1:max(d$electrode)) {
+  tmp <- d %>% filter(electrode == i)
+  mod <- lm(rxn~slope, data = tmp)
+  r_squared <- summary(mod)$r.squared
+  p_val <- summary(mod)$coefficients[2,4]
+  p <- tmp %>%
+    ggplot(aes(slope, rxn)) +
+    geom_point() +
+    stat_smooth(method = 'lm') +
+    xlim(c(-3, 3)) + ylim(c(200, 700)) +
+    xlab('Slope') + ylab('Reaction time (ms)') + 
+    ggtitle(TeX(sprintf('Electrode %d, $R^2 = %.3f$, $p = %.5f$', i, r_squared, p_val))) +
+    theme_minimal()
+  print(p)
+}
+dev.off()
+```
