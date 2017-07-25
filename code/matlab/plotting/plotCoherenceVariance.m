@@ -24,9 +24,9 @@ else
   figure;
 end
 plot(freqs, std(all_cohs,0,2) / sqrt(size(all_cohs,2)-1));
-title('SEM of coherence');
+title(sprintf('SEM of coherence, N=%d', size(all_cohs,2)));
 xlabel('Frequency (Hz)');
-ylabel(sprintf('SEM, N=%d', size(all_cohs,2)));
+ylabel('SEM');
 
 if nargout >= 1
   varargout{1} = [fig fig_stds];
