@@ -1,7 +1,8 @@
-function [inter_cohs, freqs] = calculateInterelecDistCoherence(dh, lfp_slices, dist_bins, cache_dir, conditions, varargin)
+function [inter_cohs, freqs, num_in_bins] = calculateInterelecDistCoherence(dh, lfp_slices, dist_bins, cache_dir, conditions, varargin)
 [cohs,freqs] = calculateCoherence(lfp_slices, cache_dir, conditions, varargin{:}); % hopefully cached
 n = numel(lfp_slices);
 inter_cohs = zeros(size(cohs,1), size(dist_bins,2));
+num_in_bins = zeros(1,size(dist_bins,2));
 for i=1:size(dist_bins,2)
   num = 0;
   for j=1:n
@@ -17,5 +18,6 @@ for i=1:size(dist_bins,2)
     end
   end
   inter_cohs(:,i) = inter_cohs(:,i) / num;
+  num_in_bins(i) = num;
 end
 end

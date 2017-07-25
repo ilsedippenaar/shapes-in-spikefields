@@ -9,5 +9,5 @@ n = numel(cache_map);
 cache_map(n+1).params = params;
 cache_map(n+1).filename = [num2str(n+1) '.mat'];
 save(fullfile(cache_dir, 'cache_map.mat'), 'cache_map');
-save(cache_map(end).filename, 'data');
+save(fullfile(cache_dir, cache_map(end).filename), 'data');
 end
