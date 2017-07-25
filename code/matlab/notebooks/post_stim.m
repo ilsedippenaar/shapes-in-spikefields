@@ -17,11 +17,17 @@ for i=1:numel(lfps)
   lfps{i} = lfps{i}(first_not_empty:last_not_empty);
 end
 %% Traces
-plt = plotFullTraces(lfps, 1);
-saveFigures(plt, fullfile(plot_save_dir, 'traces', sprintf('trace_post_%s.pdf', name)));
+plts = gobjects(1,numel(lfps));
+for i=1:numel(plts)
+  plts(i) = plotFullTraces(lfps,i);
+end
+saveFigures(plts, fullfile(plot_save_dir, 'traces', sprintf('trace_post_%s.pdf', name)));
 %% PSD 
 [psds, freqs] = calculatePsd(lfps, cache_dir, lfp_params, 'method', 'mtm');
-plt = plotMeanAndStd(psds, 'x', freqs);
+psds = 10*log10(psds);
+plt = plotMeanAndStds(psds, 'x', freqs);
+xlabel('Frequency (Hz)');
+ylabel('Power (dB)');
 std_plot = figure('Visible', 'off');
 plot(freqs, std(psds,0,2) / sqrt(size(psds,2)-1));
 title(sprintf('SEM of PSD, N=%d', size(psds,2)));

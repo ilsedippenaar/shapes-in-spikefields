@@ -1,14 +1,10 @@
 function [psds, freqs] = calculatePsd(lfps, cache_dir, conditions, varargin)
-[cached_data, cache_params, psds, args, is_variable_len, mtm_objs] = parseSpectrumInput('psd', lfps, cache_dir, conditions, varargin{:});
-if strcmp(args.method, 'mtm')
-  mt_params = mtm_objs{1};
-  if is_variable_len
-    tapers = mtm_objs{2};
-  end
-end
+[cached_data, cache_params, psds, args, is_variable_len, mt_params, tapers] = parseSpectrumInput('psd', lfps, cache_dir, conditions, varargin{:});
 freqs = [];
 
 if isempty(cached_data)
+  n = size(psds,2);
+  num_points = size(psds,1);
   for i=1:n
     if is_variable_len
       m = 0;
