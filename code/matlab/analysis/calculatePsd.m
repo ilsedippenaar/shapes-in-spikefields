@@ -1,54 +1,62 @@
-function [psds, freqs, pconf] = calculatePsd(data, cache_dir, conditions, varargin)
-p = inputParser;
-p.addParameter('method', 'welch');
-p.addParameter('Fs', 1000);
-p.addParameter('window_width', 512); % for welch
-p.addParameter('time_halfbandwidth', 2.5); % for mtm
-p.addParameter('num_fft', 512);
-p.parse(varargin{:});
-args = p.Results;
-
-if ~mod(args.num_fft, 2)
-  num_points = args.num_fft/2 + 1;
-else
-  num_points = (args.num_fft+1)/2;
+function [psds, freqs] = calculatePsd(lfps, cache_dir, conditions, varargin)
+[cached_data, cache_params, psds, args, is_variable_len, mtm_objs] = parseSpectrumInput('psd', lfps, cache_dir, conditions, varargin{:});
+if strcmp(args.method, 'mtm')
+  mt_params = mtm_objs{1};
+  if is_variable_len
+    tapers = mtm_objs{2};
+  end
 end
 freqs = [];
-n = numel(data);
-psds = zeros(num_points, n);
 
-% get from cache if available
-params = args;
-if strcmp(args.method, 'pwelch')
-  params.time_halfbandwidth = [];
-else
-  params.window_width = [];
-end
-params.conditions = conditions;
-params.type = 'psd';
-cached_data = getDataFromCache(cache_dir, params);
 if isempty(cached_data)
   for i=1:n
-%     r = int32(rem(numel(data{i}), args.window_width));
-    if strcmp(args.method, 'pwelch')
-      [psd,f,pconf] = pwelch(data{i}, hann(args.window_width),...
-        args.window_width/2, args.num_fft, args.Fs, 'ConfidenceLevel', 0.95);
+    if is_variable_len
+      m = 0;
+      for j=1:numel(lfps{i})
+        if strcmp(args.method, 'welch')
+          [psd,f] = pwelch(lfps{i}{j},...
+            hann(args.window_width), args.window_width/2, args.num_fft, args.Fs);
+          psds(:,i) = psds(:,i) + psd;
+          m = m + 1;
+        else
+          % TODO: is this condition necessary? Shouldn't very small samples
+          % be excluded elsewhere if at all? It would also make this
+          % implementation much cleaner and generic
+          if nextpow2(numel(lfps{i}{j})) >= nextpow2(args.num_fft)
+            mt_params.tapers = tapers{j};
+            [psd,f] = mtspectrumc(single(lfps{i}{j}), mt_params);
+            factor = (numel(psd)-1) / (num_points-1);
+            if factor ~= 1
+              psd = downsample(psd, factor);
+              f = downsample(f, factor);
+            end
+            psds(:,i) = psds(:,i) + psd;
+            m = m + 1;
+          end
+        end
+      end
+      psds(:,i) = psds(:,i) / m;
     else
-      [psd,f,pconf] = pmtm(data{i}, args.time_halfbandwidth, args.num_fft, args.Fs, 'ConfidenceLevel', 0.95);
+      if strcmp(args.method, 'welch')
+        [psd,f] = pwelch(lfps{i}, ...
+          hann(args.window_width), args.window_width/2, args.num_fft, args.Fs);
+        psds(:,i) = mean(psd,2);
+      else
+        % TODO use error outputs
+        [psd,f] = mtspectrumc(lfps{i}, mt_params);
+        psds(:,i) = psd;
+      end
     end
     assert(isempty(freqs) || all(freqs == f));
     freqs = f;
-    psds(:,i) = mean(psd,2);
   end
   cached_data = [];
   cached_data.psds = psds;
   cached_data.freqs = freqs;
-  cached_data.pconf = pconf;
-  cacheData(cache_dir, params, cached_data);
+  cacheData(cache_dir, cache_params, cached_data);
 else
-  fprintf('Found cached PSDs\n');
+  fprintf('Found cached psds\n');
   psds = cached_data.psds;
   freqs = cached_data.freqs;
-  pconf = cached_data.pconf;
 end
 end
