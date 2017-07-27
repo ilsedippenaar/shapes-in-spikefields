@@ -12,7 +12,7 @@ for i=1:n
   end
   if ~isempty(vals)
     mean_noise(i) = mean(vals);
-    std_noise(i) = std(single(vals));
+    std_noise(i) = std(single(vals)) ./ (sqrt(numel(vals)-1));
   end
 end
 first_not_empty = find(num_in_lfp, 1);
