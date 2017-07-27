@@ -66,3 +66,51 @@ subplot(4,1,4);
 tmp2 = zeros(1,10000);
 tmp2(tmp-start_time) = 1;
 plot(smooth(tmp2,100,'lowess'));
+%%
+dist = @(v1,v2) (v1'*v2)/(norm(v1)*norm(v2));
+dist_mat_shape = zeros(89,89);
+for i=1:89
+  for j=1:89
+    v1=mean(lfp_slices{contains(names,'shape')}{i},2);
+    v2=mean(lfp_slices{contains(names,'shape')}{j},2);
+    dist_mat_shape(i,j) = dist(v1,v2);
+  end
+end
+figure;
+imagesc(dist_mat_shape);
+colormap hot;
+colorbar;
+%%
+dist_mat = zeros(89,89);
+for i=1:89
+  dist_mat(i,i) = 1;
+  for j=i+1:89
+    v1=single(lfps{i});
+    v2=single(lfps{j});
+    dist_mat(i,j) = dist(v1,v2);
+    dist_mat(j,i) = dist_mat(i,j);
+  end
+end
+figure;
+imagesc(dist_mat);
+colormap hot;
+colorbar;
+%%
+[V,d]=eig(dist_mat, 'vector');
+V = V * sqrt(d(end));
+d = d / d(end);
+n=10;
+figure;
+for i=1:n
+  figure(electrodeHeatmap(electrodeVecToMat(dh,V(:,end-i+1))));
+%   lambda = d(end-i+1);
+%   v = sort(V(:,end-i+1));
+%   subplot(ceil(n/5),5,i);
+%   imagesc(lambda*(v*v'));
+%   colormap jet;
+%   colorbar;
+end
+%%
+for i=1:get(gcf, 'Number')
+  close(gcf);
+end
