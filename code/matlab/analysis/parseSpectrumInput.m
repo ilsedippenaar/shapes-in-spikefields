@@ -1,4 +1,4 @@
-function [cached_data, cache_params, out, args, is_variable_len, varargout] = parseSpectrumInput(type, in_data, cache_dir, conditions, varargin)
+function [cached_data, cache_params, out, args, is_variable_len, mt_params, mt_tapers] = parseSpectrumInput(type, in_data, cache_dir, conditions, varargin)
 p = inputParser;
 p.addParameter('method', 'welch');
 p.addParameter('Fs', 1000);
@@ -34,6 +34,8 @@ if strcmp(args.method, 'welch')
   else
     num_points = (args.num_fft+1)/2;
   end
+  mt_params = [];
+  mt_tapers = [];
 else
   mt_params = [];
   mt_params.Fs = args.Fs;
@@ -42,14 +44,13 @@ else
   % precalculate dpss tapers
   % TODO: use native matlab implementation of dpss 
   if is_variable_len
-    varargout{2} = arrayfun(@(x) dpsschk([args.T*args.W, 2*args.T*args.W-1], x, args.Fs), ...
+    mt_tapers = arrayfun(@(x) dpsschk([args.T*args.W, 2*args.T*args.W-1], x, args.Fs), ...
       cellfun(@numel, in_data{1}), 'UniformOutput', false);
     num_points = 2^(nextpow2(args.num_fft)-1)+1;
   else
     mt_params.tapers = dpsschk([args.T*args.W, 2*args.T*args.W-1], args.T, args.Fs);
     num_points = 2^nextpow2(size(in_data{1},1)-1)+1;
   end
-  varargout{1} = mt_params;
 end
 if strcmp(type, 'psd')
   out = zeros(num_points, n);

@@ -1,16 +1,14 @@
 %% Initialize
-noise_select_params = {'type', 'lfp', 'between', [start_time, size(dh.lfps,1)-30*1000], ...
+name = 'shape';
+if strcmp(name, 'noise')
+  lfp_params = {'type', 'lfp', 'between', [start_time, size(dh.lfps,1)-30*1000], ...
   'trial_section', 4, 'trial_result', {'true_positive', 'false_negative'}};
-shape_select_params = {'type', 'lfp', 'between', [start_time, size(dh.lfps,1)-30*1000], ...
-  'trial_section', 5, 'trial_result', {'true_positive', 'false_negative'}};
+else
+  lfp_params = {'type', 'lfp', 'between', [start_time, size(dh.lfps,1)-30*1000], ...
+  'trial_section', 5, 'trial_result', {'true_positive'}}; % make sure there is a saccade afterwards
+end
 
-post_noise_lfps = dh.select(noise_select_params{:});
-post_shape_lfps = dh.select(shape_select_params{:});
-
-lfps = post_noise_lfps;
-lfp_params = noise_select_params;
-name = 'noise';
-
+lfps = dh.select(lfp_params{:});
 first_not_empty = find(cellfun(@numel, lfps{1}),1);
 last_not_empty = find(cellfun(@numel, lfps{1}),1, 'last');
 for i=1:numel(lfps)
@@ -19,7 +17,7 @@ end
 %% Traces
 plts = gobjects(1,numel(lfps));
 for i=1:numel(plts)
-  plts(i) = plotFullTraces(lfps,i);
+  plts(i) = plotFullTraces(lfps{i},i);
 end
 saveFigures(plts, fullfile(plot_save_dir, 'traces', sprintf('trace_post_%s.pdf', name)));
 %% PSD 
@@ -51,3 +49,62 @@ dist_bins = [breaks(1:end-1);breaks(2:end)];
   cache_dir, lfp_params, 'method', 'mtm');
 plt = plotInterelecDistCoherence(inter_cohs, freqs, num_in_bins, dist_bins, 'freq_bin', [0 100]);
 saveFigures(plt, fullfile(plot_save_dir, 'interelectrode_distance', sprintf('interelec_dist_coh_post_%s.pdf', name)));
+
+
+%% From now on, we deal with the combined LFPs for the given condition (i.e. plotFullTraces)
+combined_lfps = cellArray2mat(cellfun(@combineVariableLengthLfps, lfps, 'UniformOutput', false));
+%% PSD
+mt_params = [];
+mt_params.Fs = dh.lfp_sample_freq;
+mt_params.pad = 1;
+mt_params.err = [1, 0.05]; % theoretical errors at p=0.05
+mt_params.tapers = [6,5];
+mt_params.trialave = true;
+[s,f,Serr] = mtspectrumc(combined_lfps, mt_params);
+plt = figure('Visible', 'off');
+cutoff_freq = 200;
+plot(f(f < cutoff_freq), 10*log10(s(f < cutoff_freq)));
+hold on
+plot(f(f<cutoff_freq), 10*log10(Serr(:,f<cutoff_freq)'),'r-')
+saveFigures(plt, fullfile(plot_save_dir, 'psd', sprintf('post_combined_%s.pdf', name)));
+%% Spectrogram
+mt_params = [];
+mt_params.Fs = dh.lfp_sample_freq;
+mt_params.pad = 1;
+mt_params.tapers = [6,5];
+mt_params.trialave = true;
+window_size = 0.064;
+[S,t,f] = mtspecgramc(combined_lfps, [window_size, window_size/2], mt_params);
+S = S(:,f < cutoff_freq);
+plt = plotSpectrogram(S,t,f(f<cutoff_freq));
+saveFigures(plt, fullfile(plot_save_dir, 'spectrogram', sprintf('post_%s.pdf', name)));
+%% Cosine distance adjacency matrix
+% This looks for groupings of electrodes (and possibly how time-domain
+% similarities change between the noise and shape stimulus.
+dist = @(v1,v2) (v1'*v2)/(norm(v1)*norm(v2));
+dist_mat = zeros(size(combined_lfps,2));
+for i=1:numel(lfps)
+  dist_mat(i,i) = 1;
+  for j=i+1:size(combined_lfps,2)
+    dist_mat(i,j) = dist(combined_lfps(:,i),combined_lfps(:,j));
+    dist_mat(j,i) = dist_mat(i,j);
+  end
+end
+plt = figure('Visible', 'off');
+imagesc(dist_mat);
+colorbar;
+colormap hot;
+saveFigures(plt, fullfile(plot_save_dir, 'adjacency_matrix', sprintf('cosine_dist_post_%s.pdf', name)));
+%% Factoring the adjacency matrix to look for electrode groupings
+[V,d] = eig(dist_mat, 'vector');
+n = 20;
+per_row = 5;
+plt = figure('Visible', 'off');
+for i=1:n
+  ax = subplot(ceil(n/per_row),per_row,i);
+  axis(ax, 'square');
+  electrodeHeatmap(electrodeVecToMat(dh,V(:,end-i+1)), ax);
+  copyobj(ax,plt);
+end
+saveFigures(plt, fullfile(plot_save_dir, 'adjacency_matrix_decomposition', ...
+  sprintf('cosine_dist_decomp_post_%s.pdf', name)));

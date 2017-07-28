@@ -7,11 +7,16 @@ if nargin < 2
   data_type = 'double';
 end
 convertFunc = str2func(data_type);
-out = zeros(size(c{1},1), sum(cellfun(@(c) size(c,2), c)), data_type);
-curr_idx = 0;
+if any(strcmp(data_type, {'double','single'}))
+  out = nan(max(cellfun(@(c) size(c,1),c)), sum(cellfun(@(c) size(c,2), c)), data_type);
+else
+  out = zeros(max(cellfun(@(c) size(c,1),c)), sum(cellfun(@(c) size(c,2), c)), data_type);
+end
+curr_idx = 1;
 for i=1:numel(c)
-  n = size(c{1},2);
-  out(:,curr_idx+1:curr_idx+n) = convertFunc(c{i});
-  curr_idx = curr_idx + n;
+  n = size(c{i},1);
+  m = size(c{i},2);
+  out(1:n,curr_idx:curr_idx+m-1) = convertFunc(c{i});
+  curr_idx = curr_idx + m;
 end
 end

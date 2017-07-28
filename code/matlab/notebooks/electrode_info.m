@@ -33,7 +33,7 @@ reduced = reshape(reduced', 2, n, 3);
 figure;
 hold on;
 colors = {'red','green','blue'};
-for i=1:3
+for i=1:numel(cond_names)
   plot(reduced(1,:,i),reduced(2,:,i),'.', 'MarkerSize', 10, 'Color', colors{i}, 'DisplayName', cond_names{i});
 end
 legend show
