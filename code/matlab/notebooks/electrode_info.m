@@ -10,15 +10,19 @@ for i=1:numel(lfp_slices{1})
   mean_noise_lfp = mean(lfp_slices{contains(names,'noise')}{i},2);
   mean_shape_lfp = mean(lfp_slices{contains(names,'shape')}{i},2);
   mean_saccade_lfp = mean(lfp_slices{contains(names,'saccade')}{i},2);
-  dists(i,:) = acos(abs([...
+  dists(i,:) = abs([...
     dist(mean_noise_lfp, mean_shape_lfp), ...
-    dist(mean_noise_lfp, mean_saccade_lfp)]));
+    dist(mean_noise_lfp, mean_saccade_lfp)]);
 end
-plot(dists(:,1), dists(:,2), '.', 'MarkerSize', 10);
-xlim([0,pi/2]);
-ylim([0,pi/2]);
+figure;
+plot(dists(:,1), dists(:,2), '.', 'MarkerSize', 0.1);
+text(dists(:,1),dists(:,2),arrayfun(@num2str, 1:numel(lfp_slices{1}),'UniformOutput', false));
+xlim([0,1]);
+xlabel('Cosine distance between noise and shape slices');
+ylim([0,1]);
+ylabel('Cosine distance between noise and saccade slices');
 hold on;
-plot(acos(linspace(0,1,100)),acos(linspace(0,1,100)));
+plot(linspace(0,1,100),linspace(0,1,100));
 %% Dimension reduction (PCA) in time domain
 n = numel(lfp_slices{1});
 all_traces = zeros(diff(select_range),3*n);
@@ -37,13 +41,14 @@ for i=1:numel(cond_names)
   plot(reduced(1,:,i),reduced(2,:,i),'.', 'MarkerSize', 10, 'Color', colors{i}, 'DisplayName', cond_names{i});
 end
 legend show
-%% Calculate Euclidean distance in reduced space
+%% Calculate Euclidean distance in reduced space - interpret with *much* caution
 dist = @(v1,v2) hypot(v1(1,:)-v2(1,:), v1(2,:)-v2(2,:));
 dists = [...
   dist(reduced(:,:,1), reduced(:,:,2))', ...
   dist(reduced(:,:,1), reduced(:,:,3))'];
-plot(dists(:,1),dists(:,2), '.', 'MarkerSize', 0.1)
+figure;
+plot(dists(:,1),dists(:,2), '.', 'MarkerSize', 0.1);
+title('Euclidean Distance in 2-dimensional PCA space');
 text(dists(:,1),dists(:,2),arrayfun(@num2str, 1:n,'UniformOutput', false));
 xlabel('Distance between noise and shape points');
 ylabel('Distance between noise and saccade points');
-%% Frequency domain clustering
