@@ -1,6 +1,6 @@
 classdef DataHandler
   %DATAHANDLER The DATAHANDLER class provides an abstraction from the underlying trial and LFP data.
-  properties (SetAccess = immutable)
+  properties
     num_trials
     num_lfp_electrodes
     num_units
@@ -11,6 +11,7 @@ classdef DataHandler
     ts_per_ms % timestamps per millisecond
     electrode_mapping
     unit_snr
+    date
     
     section_map = containers.Map(...
       {'pre_trial', 'start_to_fix', 'fix_to_noise', 'noise_to_shape', 'shape_to_stop', 'post_trial'}, ...
@@ -43,12 +44,15 @@ classdef DataHandler
       p.addParameter('lfp_sample_freq', 1e3);
       p.addParameter('spike_sample_freq', 3e4);
       p.addParameter('save_name', []);
+      p.addParameter('date', []);
+      p.addParameter('verbose', true);
       p.parse(varargin{:});
       args = p.Results;
       
       obj.spike_sample_freq = args.spike_sample_freq;
       obj.lfp_sample_freq = args.lfp_sample_freq;
       obj.ts_per_ms = obj.spike_sample_freq / 1e3;
+      obj.date = args.date;
       
       valid_unit_selec = sorted_trodes_list(:,3) > args.SNR_cutoff;
       obj.unit_snr = sorted_trodes_list(valid_unit_selec, 3);
@@ -69,6 +73,10 @@ classdef DataHandler
       obj.shape = int32([all_events{5:7:end}]);
       obj.saccade = int32([obj.trials.saccade]);
       
+      if args.verbose
+        printSummary(obj);
+      end
+      
       if ~isempty(args.save_name)
         fprintf('Saving DataHandler...\n');
         tmp = struct();
@@ -81,6 +89,18 @@ classdef DataHandler
     out = select(obj, varargin)
     out = getLfpSlices(obj, spec, varargin)
     out = getDataSlices(obj, data, type, select_range, conditions, varargin)
+    obj = clean(obj, varargin)
+    function printSummary(obj)
+      fprintf('--- Summary for DataHandler %s ---\n', obj.date);
+      fprintf('Total time: %.3f minutes\n', size(obj.lfps,1) / obj.lfp_sample_freq / 60);
+      fprintf('Number trials: %d\n', obj.num_trials);
+      fprintf('Number of LFP electrodes: %d\n', obj.num_lfp_electrodes);
+      fprintf('Number of units: %d\n', obj.num_units);
+      fprintf('Number fixations: %d\n', numel(obj.fixate));
+      fprintf('Number noise stimuli: %d\n', numel(obj.noise));
+      fprintf('Number shape stimuli: %d\n', numel(obj.shape));
+      fprintf('Number saccades: %d\n', numel(obj.saccade));
+    end
   end
   methods (Static)
     function dataHandler = fromFile(trial_struct_filename, lfp_filename, varargin)

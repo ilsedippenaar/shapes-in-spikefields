@@ -81,15 +81,7 @@ saveFigures(plt, fullfile(plot_save_dir, 'spectrogram', sprintf('post_%s.pdf', n
 %% Cosine distance adjacency matrix
 % This looks for groupings of electrodes (and possibly how time-domain
 % similarities change between the noise and shape stimulus.
-dist = @(v1,v2) (v1'*v2)/(norm(v1)*norm(v2));
-dist_mat = zeros(size(combined_lfps,2));
-for i=1:numel(lfps)
-  dist_mat(i,i) = 1;
-  for j=i+1:size(combined_lfps,2)
-    dist_mat(i,j) = dist(combined_lfps(:,i),combined_lfps(:,j));
-    dist_mat(j,i) = dist_mat(i,j);
-  end
-end
+dist_mat = calculateAdjMatrix(combined_lfps, 'cosine');
 plt = figure('Visible', 'off');
 imagesc(dist_mat);
 colorbar;

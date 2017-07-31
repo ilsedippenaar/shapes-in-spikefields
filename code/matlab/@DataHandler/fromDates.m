@@ -68,6 +68,7 @@ for i=1:total_valid
     p.parse(varargin{:});
     args = p.Unmatched;
     args.save_name = dh_file;
+    args.date = date_string;
     dh = DataHandler.fromFile(fullfile(trial_dir, valid(valid_idx).files{1}{1}), ...
                               fullfile(lfp_dir, valid(valid_idx).files{2}{1}), args);
   else
