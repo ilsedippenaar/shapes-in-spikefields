@@ -1,9 +1,10 @@
-function obj = clean(obj, dist_mat, varargin)
+function obj = clean(obj, varargin)
 p = inputParser;
 p.addParameter('cosine_dist_cutoff', 0.5);
 p.parse(varargin{:});
 args = p.Results;
 
+dist_mat = calculateAdjMatrix(obj.lfps, 'cosine');
 valid_idxs = find(mean(dist_mat,1) >= args.cosine_dist_cutoff);
 valid_elec_idxs = arrayfun(@(x) getElectrodeIdxFromLfpIdx(obj, x), valid_idxs);
 valid_spike_idxs = cell2mat(arrayfun(@(x) obj.electrode_mapping{x,2}, valid_elec_idxs, 'UniformOutput', false));

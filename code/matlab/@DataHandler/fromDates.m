@@ -68,7 +68,7 @@ for i=1:total_valid
     p.parse(varargin{:});
     args = p.Unmatched;
     args.save_name = dh_file;
-    args.date = date_string;
+    args.date = valid(valid_idx).date;
     dh = DataHandler.fromFile(fullfile(trial_dir, valid(valid_idx).files{1}{1}), ...
                               fullfile(lfp_dir, valid(valid_idx).files{2}{1}), args);
   else
@@ -82,5 +82,8 @@ for i=1:total_valid
   else
     data_handlers = dh; % at most 1 requested
   end
+end
+if num > 1
+  data_handlers = [data_handlers.dh];
 end
 end

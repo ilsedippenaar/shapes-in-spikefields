@@ -118,7 +118,7 @@ for i=1:numel(indices)
         lfp = obj.lfps(:,index);
         start = max(1, between(1));
         stop = min(numel(lfp), between(2));
-        out{i} = lfp(floor(start):ceil(stop));
+        out{i} = lfp(floor(start):ceil(stop)-1);
     end
   else
     out{i} = cell(numel(trial_nums), numel(trial_sections));

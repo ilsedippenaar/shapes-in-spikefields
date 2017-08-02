@@ -6,7 +6,7 @@ addpath(genpath('external/chronux_2_11'))
 addpath plotting
 addpath analysis
 addpath notebooks
-addpath util
+addpath(genpath('util'))
 addpath tests
 
 config
