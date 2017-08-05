@@ -39,7 +39,7 @@ function out = select(obj, varargin)
 %     between the end of this trial and the beginning on the next one.
 
 p = inputParser;
-stringIn = @(string, set) any(contains(set, string, 'IgnoreCase', true));
+stringIn = @(string, set) any(strcmpi(string, set));
 default_trial_result = {'true_positive', 'true_negative', 'false_positive', 'false_negative' 'failed'};
 
 p.addParameter('type', 'spike', @(x) stringIn(x, {'spike', 'lfp'}));
@@ -77,7 +77,7 @@ elseif ischar(args.trial_section)
   trial_sections = obj.section_map(args.trial_section);
 else
   trial_sections = args.trial_section;
-  assert(min(trial_sections) >= 1);
+  assert(min(trial_sections) >= -2 && min(trial_sections) ~= 0);
   assert(max(trial_sections) <= obj.num_trial_sections);
 end
       
@@ -88,12 +88,9 @@ if args.melt
   stop_trial = ceil(obj.trials(trial_nums(end)).sections{end});
   between = intersectInterval(between, [start_trial stop_trial]);
 else
-  trial_nums = [];
-  for i=args.trial_nums
-      if stringIn(obj.trials(i).result, args.trial_result)
-        trial_nums = [trial_nums i];
-      end
-  end
+  all_results = {obj.trials.result};
+  trial_nums = find(cellfun(@(c) stringIn(c, args.trial_result), all_results));
+  trial_nums = intersect(args.trial_nums, trial_nums);
 end
 
 switch lower(args.type)

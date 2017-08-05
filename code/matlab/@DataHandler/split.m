@@ -21,7 +21,8 @@ for i=1:n
   % num_trials
   % number_on_date
   for name={'fixate', 'noise', 'shape', 'saccade'}
-    dh.(name{1}) = dh.(name{1}) - betweens(1,i) + 1;
+    times = dh.(name{1});
+    dh.(name{1}) = times(and(times >= betweens(1,i), times < betweens(2,i))) - betweens(1,i) + 1;
   end
   
   start_trial_num = binarySearch(trial_starts, betweens(1,i), ']', true);
@@ -29,13 +30,9 @@ for i=1:n
   dh.trials = obj.trials(start_trial_num:end_trial_num);
   dh.num_trials = numel(dh.trials);
   for j=1:dh.num_trials
-    if ~isempty(dh.saccade)
-      dh.trials(j).saccade = dh.trials(j).saccade - betweens(1,i) + 1;
-    end
+    dh.trials(j).saccade = dh.trials(j).saccade - betweens(1,i) + 1;
     for k=1:dh.num_trial_sections+1
-      if ~isempty(dh.trials(j).sections{k})
-        dh.trials(j).sections{k} = dh.trials(j).sections{k} - betweens(1,i) + 1;
-      end
+      dh.trials(j).sections{k} = dh.trials(j).sections{k} - betweens(1,i) + 1;
     end
   end
   

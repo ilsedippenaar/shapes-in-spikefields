@@ -15,8 +15,9 @@ classdef DataHandler
     number_on_date = 1 % given certain selection parameters to avoid noise, there may be multiple data handlers for one day
     
     section_map = containers.Map(...
-      {'pre_trial', 'start_to_fix', 'fix_to_noise', 'noise_to_shape', 'shape_to_stop', 'post_trial'}, ...
-      num2cell(1:6));
+      {'pre_trial', 'start_to_fix', 'fix_to_noise', 'noise_to_shape', 'shape_to_stop', 'post_trial', ...
+      'shape_to_saccade', 'saccade_to_stop'}, ...
+      [num2cell(1:6), -1, -2]);
     
     fixate
     noise
@@ -131,15 +132,20 @@ classdef DataHandler
       trial_file = load(trial_struct_filename);
       fprintf('Loading LFP file...\n');
       lfp_file = load(lfp_filename);
+      
       fprintf('Building DataHandler...\n');
       p = inputParser;
       p.KeepUnmatched = true;
       p.parse(varargin{:});
       args = p.Unmatched;
+      
       args.lfp_sample_freq = lfp_file.NS4.MetaTags.SamplingFreq * lfp_file.NS4.resampleFrac;
       args.spike_sample_freq = lfp_file.NS4.MetaTags.TimeRes;
-      dataHandler = DataHandler(trial_file.trials, trial_file.file.sortedtrodes(:,1:3), ...
-        lfp_file.NS4.rData, [lfp_file.NS4.ElectrodesInfo.ElectrodeID], args);
+      args.trial_struct = trial_file.trials;
+      args.sorted_trodes_list = trial_file.file.sortedtrodes(:,1:3);
+      args.lfps = lfp_file.NS4.rData;
+      args.electrode_lfp_mapping = [lfp_file.NS4.ElectrodesInfo.ElectrodeID];
+      dataHandler = DataHandler(args);
     end
     dataHandler = fromDates(dates, trial_dir, lfp_dir, data_handler_dir, varargin)
   end

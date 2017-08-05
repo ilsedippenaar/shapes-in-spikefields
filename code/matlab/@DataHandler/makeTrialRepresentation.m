@@ -26,6 +26,9 @@ for i=1:obj.num_trials
                             double(shape), ...
                             double(tr.stopTime), ...
                             double(next_trial_start)};
+  % saccades cannot be part of "sections" since a saccade can occur
+  % anywhere in the trial. Trial section numbers would not be
+  % well-defined if they were included.
   trials_out(i).saccade = double(saccade);
    
   if isempty(fixate) % no fixation occurred

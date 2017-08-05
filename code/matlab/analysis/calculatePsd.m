@@ -39,6 +39,7 @@ if isempty(cached_data)
         psds(:,i) = mean(psd,2);
       else
         % TODO use error outputs
+        mt_params.tapers = tapers;
         [psd,f] = mtspectrumc(lfps{i}, mt_params);
         psds(:,i) = psd;
       end

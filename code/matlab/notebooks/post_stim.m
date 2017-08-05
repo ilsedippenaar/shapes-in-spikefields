@@ -1,11 +1,11 @@
 %% Initialize
-name = 'shape';
+name = 'noise';
 if strcmp(name, 'noise')
   lfp_params = {'type', 'lfp', 'between', [start_time, size(dh.lfps,1)-30*1000], ...
-  'trial_section', 4, 'trial_result', {'true_positive', 'false_negative'}};
+  'trial_section', 'noise_to_shape', 'trial_result', {'true_positive'}};
 else
   lfp_params = {'type', 'lfp', 'between', [start_time, size(dh.lfps,1)-30*1000], ...
-  'trial_section', 5, 'trial_result', {'true_positive'}}; % make sure there is a saccade afterwards
+  'trial_section', 'shape_to_saccade', 'trial_result', {'true_positive'}}; % make sure there is a saccade afterwards
 end
 
 lfps = dh.select(lfp_params{:});

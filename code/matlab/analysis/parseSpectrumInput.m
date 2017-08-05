@@ -3,7 +3,7 @@ p = inputParser;
 p.addParameter('method', 'welch');
 p.addParameter('Fs', 1000);
 p.addParameter('window_width', 512);
-p.addParameter('num_fft', 512); % only NOT used if method ~= welch and is_variable_len is true
+p.addParameter('num_fft', 512); % only NOT used if method ~= welch and is_variable_length = false
 p.addParameter('T', 0.5);
 p.addParameter('W', 6);
 p.parse(varargin{:});
@@ -42,14 +42,16 @@ else
   mt_params.pad = 1;
   mt_params.trialave = true;
   % precalculate dpss tapers
-  % TODO: use native matlab implementation of dpss 
   if is_variable_len
     mt_tapers = arrayfun(@(x) dpsschk([args.T*args.W, 2*args.T*args.W-1], x, args.Fs), ...
       cellfun(@numel, in_data{1}), 'UniformOutput', false);
     num_points = 2^(nextpow2(args.num_fft)-1)+1;
   else
-    mt_params.tapers = dpsschk([args.T*args.W, 2*args.T*args.W-1], args.T, args.Fs);
-    num_points = 2^nextpow2(size(in_data{1},1)-1)+1;
+    mt_tapers = dpsschk([args.T*args.W, 2*args.T*args.W-1], size(in_data{1},1), args.Fs);
+    if floor(log2(size(in_data{1},1))) == log2(size(in_data{1},1))
+      mt_params.pad = 0;
+    end
+    num_points = 2^(nextpow2(size(in_data{1},1))-1)+1;
   end
 end
 if strcmp(type, 'psd')

@@ -1,6 +1,9 @@
 function [mean_lfp,std_lfp,num_counted] = combineVariableLengthLfps(lfps)
-assert(iscell(lfps));
-lfp_mat = cellArray2mat(lfps','single');
+if iscell(lfps)
+  lfp_mat = cellArray2mat(lfps','single');
+else
+  lfp_mat = lfps;
+end
 num_counted = sum(~isnan(lfp_mat),2);
 idxs = num_counted > 1;
 

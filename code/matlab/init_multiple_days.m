@@ -1,4 +1,4 @@
-if multiple_days && exist('dhs', 'var') ~= 1
+if exist('dhs', 'var') ~= 1
   dhs = DataHandler.fromDates(datetime('2013-05-1'):datetime('2013-05-29'), ...
     fullfile(data_dir, 'trials'), ...
     fullfile(data_dir, 'lfps'), ...
@@ -98,24 +98,6 @@ for j=1:numel(betweens)
   all_dhs(idx:idx+num-1) = dhs(j).split(betweens{j});
   idx = idx + num;
 end
-for j=1:numel(all_dhs)
-  if all_dhs{j}.num_trials == 0
-    all_dhs{j} = [];
-  end
-end
 dhs = [all_dhs{:}];
-clear all_dhs
-%%
-trial_sections = [4,5];
-stim_lfps = cell(96,numel(trial_sections));
-for i=1:numel(trial_sections)
-  all_stim = cell(1,numel(dhs));
-  for j=1:numel(dhs)
-    stim = dhs(j).select('type', 'lfp', 'trial_section', trial_sections(i), 'trial_result', {'true_positive'});
-    for k=1:numel(stim)
-      stim{k} = cellArray2mat(stim{k}','single');
-    end
-    all_stim{j} = expandCellArray(dhs(j), stim);
-  end
-  stim_lfps(:,i) = combineCellArrays('single', all_stim{:});
-end
+dhs = dhs([dhs.num_trials] ~= 0);
+% clear all_dhs betweens num idx i j 
