@@ -8,8 +8,14 @@ n = numel(lfps);
 if isempty(cached_data)
   for i=1:n
     fprintf('Electrode: %d\n', i);
+    if isempty(lfps{i})
+      continue
+    end
     cohs(:,i,i) = 1;
     for j=i+1:n
+      if isempty(lfps{j})
+        continue
+      end
       if is_variable_len
         m = 0;
         for k=1:numel(lfps{i})
@@ -41,6 +47,7 @@ if isempty(cached_data)
           cohs(:,i,j) = mean(cxy,2);
         else
           % TODO use error outputs
+          mt_params.tapers = mt_tapers;
           [cxy,~,~,~,~,f] = coherencyc(single(lfps{i}), single(lfps{j}), mt_params);
           cohs(:,i,j) = cxy;
         end

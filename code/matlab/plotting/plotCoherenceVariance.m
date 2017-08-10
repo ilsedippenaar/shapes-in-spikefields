@@ -9,8 +9,7 @@ for i=1:size(cohs,2)
 end
 
 plts = gobjects(1,2);
-plts(1) = figure('Visible', 'off');
-plotMeanAndStds(all_cohs, 'x', freqs);
+plts(1) = plotMeanAndStds(all_cohs, 'x', freqs);
 title('Mean of all coherences');
 xlabel('Frequency (Hz)');
 ylabel('Coherence');

@@ -1,6 +1,6 @@
 function out = regressReactionTimes(dh, between)
 lfps = dh.select('type','lfp', 'between', between, ...
-  'trial_section', 5, 'trial_result', {'true_positive'});
+  'trial_section', 'shape_to_saccade', 'trial_result', {'true_positive'});
 first_not_empty = find(cellfun(@numel, lfps{1}),1);
 last_not_empty = find(cellfun(@numel, lfps{1}), 1, 'last');
 out = zeros(last_not_empty-first_not_empty+1, 2, numel(lfps));

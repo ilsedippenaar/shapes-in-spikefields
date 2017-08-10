@@ -1,40 +1,32 @@
-function out = getDataSlices(obj, data, type, select_range, conditions, varargin)
+function out = getDataSlices(obj, type, select_range, conditions, varargin)
 % assumes conditons.vec covers of the entire data time period (i.e. that
 % all data recorded are reflective of the conditions specified and that
 % there aren't data recorded when conditions were not).
 p = inputParser;
-p.addParameter('start_time', []);
 p.addParameter('data_type', []);
 p.parse(varargin{:});
 args = p.Results;
 
 % validate and parse input
-assert(iscell(data));
-if numel(data) == 0
+if strcmp(type, 'lfp')
+  data = mat2cell(obj.lfps, size(obj.lfps,1), ones(1,size(obj.lfps, 2)));
+else
+  data = obj.spikes;
+end
+if numel(data) == 0 % can assume data{1} exists
   out = [];
   return
 end
-if strcmp(type, 'lfp')
-  assert(~isempty(args.start_time));
-  start_time = args.start_time;
-  end_time = numel(data{1}) + start_time - 1;
-  if isempty(args.data_type)
-    data_type = 'int16';
-  else
-    data_type = args.data_type;
-  end
+start_time = 0;
+if isempty(args.data_type)
+  data_type = class(data{1});
 else
-  if isempty(args.start_time)
-    start_time = max(cellfun(@(c) c(1), data));
-  else
-    start_time = args.start_time;
-  end
+  data_type = args.data_type;
+end
+if strcmp(type, 'lfp')
+  end_time = numel(data{1}) + start_time - 1;
+else
   end_time = min(cellfun(@(c) c(end), data));
-  if isempty(args.data_type)
-    data_type = 'int32';
-  else
-    data_type = args.data_type;
-  end
 end
 
 % make difference vectors for the negated conditions

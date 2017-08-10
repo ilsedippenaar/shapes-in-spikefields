@@ -108,8 +108,8 @@ for i=1:numel(indices)
       case 'spike'
         spikes = obj.spikes{index};
         % only get inclusive values in range
-        start = binarySearch(spikes, between(1), ']');
-        stop = binarySearch(spikes, between(2), '(');
+        start = binarySearch(spikes, between(1), ']', true);
+        stop = binarySearch(spikes, between(2), '(', true);
         out{i} = spikes(start:stop);
       case 'lfp'
         lfp = obj.lfps(:,index);

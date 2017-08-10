@@ -1,6 +1,6 @@
 function [mean_lfp,std_lfp,num_counted] = combineVariableLengthLfps(lfps)
 if iscell(lfps)
-  lfp_mat = cellArray2mat(lfps','single');
+  lfp_mat = cellArray2mat(lfps,'single');
 else
   lfp_mat = lfps;
 end

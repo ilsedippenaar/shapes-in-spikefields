@@ -52,7 +52,7 @@ saveFigures(plt, fullfile(plot_save_dir, 'interelectrode_distance', sprintf('int
 
 
 %% From now on, we deal with the combined LFPs for the given condition (i.e. plotFullTraces)
-combined_lfps = cellArray2mat(cellfun(@combineVariableLengthLfps, lfps, 'UniformOutput', false));
+combined_lfps = cellArray2mat(cellfun(@(c) combineVariableLengthLfps(c'), lfps, 'UniformOutput', false));
 %% PSD
 mt_params = [];
 mt_params.Fs = dh.lfp_sample_freq;
@@ -95,7 +95,7 @@ plt = figure('Visible', 'off');
 for i=1:n
   ax = subplot(ceil(n/per_row),per_row,i);
   axis(ax, 'square');
-  electrodeHeatmap(electrodeVecToMat(dh,V(:,end-i+1)), ax);
+  electrodeHeatmap(electrodeVecToMat(dh.electrode_mapping,V(:,end-i+1)), ax);
   copyobj(ax,plt);
 end
 saveFigures(plt, fullfile(plot_save_dir, 'adjacency_matrix_decomposition', ...

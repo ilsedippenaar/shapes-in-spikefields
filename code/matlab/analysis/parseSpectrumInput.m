@@ -8,7 +8,8 @@ p.addParameter('T', 0.5);
 p.addParameter('W', 6);
 p.parse(varargin{:});
 args = p.Results;
-is_variable_len = iscell(in_data{1});
+first_not_empty = find(~cellfun(@isempty, in_data),1);
+is_variable_len = iscell(in_data{first_not_empty});
 
 % get data from cache (and create dpss)
 cache_params = [];
@@ -44,14 +45,14 @@ else
   % precalculate dpss tapers
   if is_variable_len
     mt_tapers = arrayfun(@(x) dpsschk([args.T*args.W, 2*args.T*args.W-1], x, args.Fs), ...
-      cellfun(@numel, in_data{1}), 'UniformOutput', false);
+      cellfun(@numel, in_data{first_not_empty}), 'UniformOutput', false);
     num_points = 2^(nextpow2(args.num_fft)-1)+1;
   else
-    mt_tapers = dpsschk([args.T*args.W, 2*args.T*args.W-1], size(in_data{1},1), args.Fs);
-    if floor(log2(size(in_data{1},1))) == log2(size(in_data{1},1))
+    mt_tapers = dpsschk([args.T*args.W, 2*args.T*args.W-1], size(in_data{first_not_empty},1), args.Fs);
+    if floor(log2(size(in_data{first_not_empty},1))) == log2(size(in_data{first_not_empty},1))
       mt_params.pad = 0;
     end
-    num_points = 2^(nextpow2(size(in_data{1},1))-1)+1;
+    num_points = 2^(nextpow2(size(in_data{first_not_empty},1))-1)+1;
   end
 end
 if strcmp(type, 'psd')

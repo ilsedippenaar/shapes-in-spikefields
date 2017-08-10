@@ -100,4 +100,4 @@ for j=1:numel(betweens)
 end
 dhs = [all_dhs{:}];
 dhs = dhs([dhs.num_trials] ~= 0);
-% clear all_dhs betweens num idx i j 
+clear all_dhs num idx i j 

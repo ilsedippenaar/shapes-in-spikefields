@@ -1,4 +1,8 @@
 function [plt,mean_lfp,std_lfp] = plotFullTraces(lfps, elec_num)
+dim = find(size(lfps) == 1);
+if dim == 2
+  lfps = lfps';
+end
 [mean_lfp,std_lfp,num_counted] = combineVariableLengthLfps(lfps);
 
 plt = figure('Visible', 'off');

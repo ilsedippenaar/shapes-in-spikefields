@@ -1,4 +1,5 @@
 function trials_out = makeTrialRepresentation(obj, trial_struct)
+trials_out(obj.num_trials) = [];
 for i=1:obj.num_trials
   tr = trial_struct(i);
   if i == 1
@@ -9,7 +10,7 @@ for i=1:obj.num_trials
   if i == obj.num_trials
     % calculate the very end of data that exists
     lfp_end = size(obj.lfps, 1);
-    spike_end = max(cell2mat(cellfun(@max, tr.postTrial.spikes, 'UniformOutput', false)));
+    spike_end = max(cell2mat(cellfun(@max, tr.intsort.spikes, 'UniformOutput', false)));
     next_trial_start = max(lfp_end, spike_end);
   else
     next_trial_start = trial_struct(i+1).startTime;

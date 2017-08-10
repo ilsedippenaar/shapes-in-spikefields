@@ -18,7 +18,7 @@ for i=1:numel(conditions)
     end
     plts(j) = figure('Visible', 'off');
     plotMeanAndStds(lfp_slice{j}, 'x', select_range(1):select_range(2)-1);
-    title(sprintf('Electrode %d, N=%d Condition=%s', getElectrodeIdxFromLfpIdx(dh, j), size(lfp_slice{j},2), names{i}));
+    title(sprintf('Electrode %d, N=%d Condition=%s', getElectrodeIdxFromLfpIdx(dh.electrode_mapping, j), size(lfp_slice{j},2), names{i}));
     plot([-1 -1], ylim(), 'r-');
   end
   saveFigures(plts, fullfile(plot_save_dir, sprintf('traces_1000_%s.pdf', names{i})));
