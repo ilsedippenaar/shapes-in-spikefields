@@ -1,4 +1,5 @@
 % TODOs:
+%   exclude shape data where noise_to_shape is not long enough
 %   look at mtspectrumc_unequal_trial_lengths
 
 % Deals only with data from trial sections (i.e. dh.select())
@@ -46,30 +47,58 @@ electrode_mapping = cell(96,2);
 electrode_mapping(:,1) = num2cell(1:96);
 
 lfps = cell(numel(dhs),numel(trial_sections));
-num_trials_per_electrode = zeros(96,numel(trial_sections));
-max_section_lengths = zeros(size(lfps));
-for i=1:numel(trial_sections)
-  for j=1:numel(dhs)
-    % select data and expand to 96 electrodes
-    lfps{j,i} = expandCellArray(dhs(j).electrode_mapping, dhs(j).select(select_params{i}{:}));
-    % eliminate too small sections
-    trial_sizes = cellfun(@numel, lfps{j,i}{find(~cellfun(@isempty, lfps{j,i}),1)});
-    for k=1:96
-      if ~isempty(lfps{j,i}{k})
-        lfps{j,i}{k}(trial_sizes < min_trial_lengths(i)) = [];
+noise_idx = find(strcmp(trial_sections, 'noise_to_shape'));
+days_to_delete = false(1,numel(dhs));
+for i=1:numel(dhs)
+  day_lfps = dhs(i).select('type', 'lfp', 'trial_result', {'true_positive'}, 'trial_section', trial_sections);
+  for j=1:numel(day_lfps)
+    sections_to_delete = false(1,size(day_lfps{j},1));
+    for k=1:size(day_lfps{j},1)
+      if numel(day_lfps{j}{k,noise_idx}) < min_trial_lengths(noise_idx)
+        sections_to_delete(k) = true;
+      else
+        day_lfps{j}{k,noise_idx} = day_lfps{j}{k,noise_idx}(noise_offset:end);
       end
     end
-    % eliminate the noise stimulus onset response
-    if strcmp(trial_sections{i}, 'noise_to_shape')
-      lfps{j,i} = funcInCells(lfps{j,i}, @(c) c(noise_offset:end));
+    day_lfps{j}(sections_to_delete,:) = [];
+  end
+  if all(cellfun(@isempty, day_lfps))
+    days_to_delete(i) = true;
+  else
+    for j=1:numel(trial_sections)
+      section_lfps = cellfun(@(c) c(:,j), day_lfps, 'UniformOutput', false);
+      lfps{i,j} = expandCellArray(dhs(i).electrode_mapping, section_lfps);
     end
-    % set some variables for convenience
-    num_trials_per_electrode(:,i) = num_trials_per_electrode(:,i) + ...
-      cellfun(@numel, lfps{j,i})';
-    first_not_empty = find(~cellfun(@isempty, lfps{j,i}),1);
-    max_section_lengths(j,i) = max(cellfun(@numel, lfps{j,i}{first_not_empty}));
   end
 end
+lfps(days_to_delete,:) = [];
+day_idxs = find(~days_to_delete);
+
+% lfps = cell(numel(dhs),numel(trial_sections));
+% num_trials_per_electrode = zeros(96,numel(trial_sections));
+% max_section_lengths = zeros(size(lfps));
+% for i=1:numel(trial_sections)
+%   for j=1:numel(dhs)
+%     % select data and expand to 96 electrodes
+%     lfps{j,i} = expandCellArray(dhs(j).electrode_mapping, dhs(j).select(select_params{i}{:}));
+%     % eliminate too small sections
+%     trial_sizes = cellfun(@numel, lfps{j,i}{find(~cellfun(@isempty, lfps{j,i}),1)});
+%     for k=1:96
+%       if ~isempty(lfps{j,i}{k})
+%         lfps{j,i}{k}(trial_sizes < min_trial_lengths(i)) = [];
+%       end
+%     end
+%     % eliminate the noise stimulus onset response
+%     if strcmp(trial_sections{i}, 'noise_to_shape')
+%       lfps{j,i} = funcInCells(lfps{j,i}, @(c) c(noise_offset:end));
+%     end
+%     % set some variables for convenience
+%     num_trials_per_electrode(:,i) = num_trials_per_electrode(:,i) + ...
+%       cellfun(@numel, lfps{j,i})';
+%     first_not_empty = find(~cellfun(@isempty, lfps{j,i}),1);
+%     max_section_lengths(j,i) = max(cellfun(@numel, lfps{j,i}{first_not_empty}));
+%   end
+% end
 
 % make combined lfps for time analysis
 combined_lfps = cell(1,numel(trial_sections));
@@ -82,7 +111,7 @@ num_fft = 2 .^ nextpow2(max(max_section_lengths));
 padded_lfps = cell(size(lfps)); % need to keep days separate for coherence
 for i=1:numel(trial_sections)
   padded_lfps(:,i) = funcInCells(lfps(:,i), @padData, [], {num_fft(i), 'single'});
-  for j=1:numel(dhs)
+  for j=1:size(padded_lfps,1)
     for k=1:96
       padded_lfps{j,i}{k} = cellArray2mat(padded_lfps{j,i}{k}', 'single', 0);
     end
@@ -167,9 +196,10 @@ for i=1:numel(trial_sections)
   num_points = size(padded_lfps{1,i}{1},1)/2+1;
   all_cohs{i} = zeros(num_points,96,96);
   num_counted = zeros(1,96,96); % bookkeeping for weighted average across days
-  for j=1:numel(dhs)
-    fprintf('Date: %s (%d)\n', dhs(j).date, dhs(j).number_on_date);
-    coh_cache_params(i).date = sprintf('%s (%d)', dhs(j).date, dhs(j).number_on_date);
+  for j=1:size(padded_lfps,1)
+    day_idx = day_idxs(j);
+    fprintf('Date: %s (%d)\n', dhs(day_idx).date, dhs(day_idx).number_on_date);
+    coh_cache_params(i).date = sprintf('%s (%d)', dhs(day_idx).date, dhs(day_idx).number_on_date);
     [cohs, freqs] = calculateCoherence(padded_lfps{j,i}, cache_dir, coh_cache_params(i), ...
       'method', 'mtm', 'T', T, 'W', W);
     
@@ -220,18 +250,40 @@ title(sprintf('N = %d', sum(cellfun(@(c) size(c,2), saccade_centered_lfps))));
 saveFigures(plt, fullfile(plot_save_dir, 'all_days/traces', 'saccade_centered_lfp.pdf'));
 % make csv file with cols electrode number, slope, and reaction time to
 % plotting in R
+shape_idx = find(strcmp(trial_sections, 'shape_to_saccade'));
 rxns_and_slopes = cell(1,96);
 for i=1:96
-  valid_idxs = find(cellfun(@numel, combined_lfps{2}{i}) >= length_presaccade_response+100); % at least 100 ms before saccade response to regress with
+  valid_idxs = find(cellfun(@numel, combined_lfps{shape_idx}{i}) >= length_presaccade_response+100); % at least 100 ms before saccade response to regress with
   rxns_and_slopes{i} = zeros(numel(valid_idxs),2);
   for j=1:numel(valid_idxs)
     idx = valid_idxs(j);
-    rxn_time = numel(combined_lfps{2}{i}{idx});
-    t = (1:numel(combined_lfps{2}{i}{idx})-length_presaccade_response)';
-    coeffs = [ones(numel(t),1), t] \ single(combined_lfps{2}{i}{idx}(1:end-length_presaccade_response));
+    rxn_time = numel(combined_lfps{shape_idx}{i}{idx});
+    t = (1:numel(combined_lfps{shape_idx}{i}{idx})-length_presaccade_response)';
+    coeffs = [ones(numel(t),1), t] \ single(combined_lfps{shape_idx}{i}{idx}(1:end-length_presaccade_response));
     rxns_and_slopes{i}(j,:) = [coeffs(2), rxn_time];
   end
 end
 csvwrite(fullfile(data_dir, '../R/', 'rxns_and_slopes.csv'), ...
   [repelem((1:96)', cellfun(@(c) size(c,1), rxns_and_slopes)), ...
   cellArray2mat(rxns_and_slopes')]);
+%% Time-normalized spectrogram
+plts = gobjects(1,96);
+shape_idx = find(strcmp(trial_sections, 'shape_to_saccade'));
+window_size = 0.128;
+mt_params = [];
+mt_params.tapers = [T*W, 2*T*W-1];
+mt_params.fpass = [0,freq_cutoff];
+mt_params.Fs = 1000;
+mt_params.trialave = false;
+for i=1:96
+  all_specgrams = cell(1,numel(combined_lfps{shape_idx}{i}));
+  for j=1:numel(combined_lfps{shape_idx}{i})
+    [S,~,f] = mtspecgramc(combined_lfps{i}{j},[window_size, window_size/2],mt_params);
+    all_specgrams{j} = S;
+  end
+  normalized_specgram = normalizeData(all_specgrams);
+  t = linspace(0,1,size(normalized_specgram,1));
+  plts(i) = plotSpectrogram(S,t,f);
+  title(sprintf('Normalized spectrogram for electrode %d', i));
+end
+saveFigures(plts, fullfile(plot_save_dir, 'all_days/spectrogram', 'shape_to_saccade_normalized_spectrogram.pdf'));
