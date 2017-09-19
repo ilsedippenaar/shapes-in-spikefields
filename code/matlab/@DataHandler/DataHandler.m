@@ -84,9 +84,9 @@ classdef DataHandler
         obj.spikes = obj.concatSpikes(args.trial_struct, valid_unit_selec);
 
         all_events = [obj.trials.sections];
-        obj.fixate = int32([all_events{3:7:end}]);
-        obj.noise = int32([all_events{4:7:end}]);
-        obj.shape = int32([all_events{5:7:end}]);
+        obj.fixate = int32([all_events{3:obj.num_trial_sections+1:end}]);
+        obj.noise = int32([all_events{4:obj.num_trial_sections+1:end}]);
+        obj.shape = int32([all_events{5:obj.num_trial_sections+1:end}]);
         obj.saccade = int32([obj.trials.saccade]);
       end
       
