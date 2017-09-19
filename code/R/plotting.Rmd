@@ -2,6 +2,7 @@
 library(ggplot2)
 library(dplyr)
 library(latex2exp)
+library(R.matlab)
 
 source('config.R')
 ```
@@ -51,3 +52,39 @@ for (i in 1:max(d$electrode)) {
 }
 dev.off()
 ```
+
+```{r}
+mat_file <- readMat(file.path(data_dir, 'interelectrode_cohs.mat'))
+dist_bins <- mat_file[[3]]
+legend_labels <- c()
+for (i in 1:dim(dist_bins)[2]) {
+  legend_labels[i] = TeX(sprintf('%.0f - %.0f $\\mu m$', dist_bins[1,i], dist_bins[2,i]))
+}
+colors <- matlab::fliplr((matlab::jet.colors(length(legend_labels))))
+freqs <- as.numeric(mat_file[[2]])
+data_names <- list('shape', 'saccade')
+for (i in 1:length(mat_file[[1]])) {
+  d <- data.frame(matrix(nrow = 0, ncol = 5))
+  colnames(d) <- c('dist_bin','freq','coh','se1','se2')
+  png(file = file.path(plot_save_dir, sprintf('interelectrode_cohs_%s.png', data_names[[i]])), width=800, height=800)
+  for (j in 1:length(mat_file[[1]][[i]][[1]])) {
+    lfps <- mat_file[[1]][[i]][[1]][[j]][[1]]
+    m <- apply(lfps,1,mean)
+    se <- apply(lfps, 1, std) * 1.97 / dim(lfps)[1]
+    d <- rbind(d, data.frame(dist_bin = as.factor(j), freq=freqs, coh=m, se1=m-se, se2=m+se))
+  }
+  p <- d %>%
+    ggplot(aes(freq, coh)) +
+    geom_line(aes(col=dist_bin), size=1) +
+    geom_ribbon(aes(x=freq,ymin = se1, ymax = se2, fill=dist_bin), alpha=0.2) +
+    scale_color_manual(labels=legend_labels, name = NULL, values = colors) +
+    scale_fill_manual(values = colors) +
+    guides(fill=F) +
+    xlab('Frequency (Hz)') + ylab('Coherency') +
+    theme_minimal() +
+    theme(text = element_text(size=24))
+  print(p)
+  dev.off()
+}
+```
+
