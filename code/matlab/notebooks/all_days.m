@@ -10,11 +10,11 @@
 %   interelectrode distance coherence
 %   spectrograms (especially with centered shape)
 %   reaction times versus slope after shape
-%   ? time normalized spectrogram
+%   time normalized spectrogram
 %% Parameters
 % Selecting
-noise_offset = 1001; % start 1 sec after noise to avoid big onset stimulus
-min_trial_lengths = [noise_offset+50, 50]; % at least 50 points for each trial
+length_postnoise_response = 1001; % start 1 sec after noise to avoid big onset stimulus
+min_trial_lengths = [length_postnoise_response+50, 50]; % at least 50 points for each trial
 length_presaccade_response = 150;
 % Multitaper
 T = 0.5;
@@ -40,7 +40,7 @@ cache_params.betweens = betweens;
 cache_params(2) = cache_params(1);
 [cache_params.select_params] = deal(select_params{:});
 [cache_params.min_trial_lengths] = deal(min_trial_lengths(1), min_trial_lengths(2));
-cache_params(1).noise_offset = noise_offset;
+cache_params(1).length_postnoise_response = length_postnoise_response;
 
 electrode_mapping = cell(96,2);
 electrode_mapping(:,1) = num2cell(1:96);
@@ -61,7 +61,7 @@ for i=1:numel(dhs)
         valid_sections(k) = false;
       else
         % if the trial has sufficient data, eliminate noise onset response
-        day_lfps{j}{k,noise_idx} = day_lfps{j}{k,noise_idx}(noise_offset:end);
+        day_lfps{j}{k,noise_idx} = day_lfps{j}{k,noise_idx}(length_postnoise_response:end);
       end
     end
     day_lfps{j} = day_lfps{j}(valid_sections,:);
@@ -111,8 +111,8 @@ shape_centered_lfps = cell(1,numel(dhs));
 % make *really* sure nothing else is happening
 shape_centered_condition = cell2struct([...
   {'shape', false, [0,1]}; ...
-  {'noise', true, [-(256+noise_offset), 256+length_presaccade_response]}; ...
-  {'saccade', true, [-(256+noise_offset),256+length_presaccade_response]}], {'vec','negate','range'}, 2);
+  {'noise', true, [-(256+length_postnoise_response), 256+length_presaccade_response]}; ...
+  {'saccade', true, [-(256+length_postnoise_response),256+length_presaccade_response]}], {'vec','negate','range'}, 2);
 for i=1:numel(dhs)
   shape_centered_lfps{i} = expandCellArray(dhs(i).electrode_mapping, ...
     dhs(i).getDataSlices('lfp', [-256,256], shape_centered_condition));
@@ -284,11 +284,11 @@ for i=1:96
     [S,~,f] = mtspecgramc(single(combined_lfps{shape_idx}{i}{j}),[window_size, window_size/2],mt_params);
     all_specgrams{j} = S;
   end
-  valid_trials = ~cellfun(@isempty, all_specgrams);
-  norm_specgram = normalizeData(all_specgrams(valid_trials));
+  valid_trials = cellfun(@(c) size(c,1) > 4, all_specgrams);
+  norm_specgram = normalizeData(all_specgrams(valid_trials), 'dim', 1, 'method', 'linear');
   norm_specgram = mean(reshape(cellArray2mat(norm_specgram),[size(norm_specgram{1}), numel(norm_specgram)]),3);
   t = linspace(0,1,size(norm_specgram,1));
   plts(i) = plotSpectrogram(norm_specgram,t,f);
   title(sprintf('Normalized spectrogram for electrode %d', i));
 end
-saveFigures(plts, fullfile(plot_save_dir, 'all_days/spectrogram', 'shape_to_saccade_normalized_spectrogram.pdf'));
+saveFigures(plts, fullfile(plot_save_dir, 'all_days/spectrogram', 'shape_to_saccade_normalized_spectrogram3.pdf'));

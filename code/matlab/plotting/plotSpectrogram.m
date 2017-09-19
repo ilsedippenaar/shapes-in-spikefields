@@ -1,9 +1,15 @@
-function plt = plotSpectrogram(S,t,f)
+function plt = plotSpectrogram(S,t,f,take_log)
+if nargin <= 3 || take_log
+  take_log = true;
+  S = 10*log10(S);
+end
 plt = figure('Visible', 'off');
-imagesc(flipud(10*log10(S)'));
+imagesc(flipud(S'));
 bar = colorbar;
 colormap hot;
-ylabel(bar, 'Power (dB)');
+if take_log
+  ylabel(bar, 'Power (dB)');
+end
 
 times = linspace(t(1),t(end),10);
 time_ticks = interp1(times, linspace(1,numel(t),10), times);
