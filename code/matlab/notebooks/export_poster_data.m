@@ -92,7 +92,7 @@ for i=1:numel(data)
   for j=1:96
     fprintf('%d / %d\n', j, 96);
     all_cohgrams{i}(:,:,j,j) = 1;
-    for k=i+1:96
+    for k=j+1:96
       [~,idxs1,idxs2] = intersect(combined_indices{i}{j},combined_indices{i}{k});
       [C,~,~,~,~,t,f] = cohgramc(data{i}{j}(:,idxs1), data{i}{k}(:,idxs2),  [params.window_size, params.window_size/2], mt_params);
       cohgram = cohgram + C;
@@ -135,7 +135,7 @@ for i=1:numel(data)
   saveFigures(plt, fullfile(plot_save_dir, 'poster', sprintf('interelectrode_dist_coh_%s.png', params.names{i})));
   all_cohs{i} = cohs;
 end
-%% Export cohgrams for plotting in R
+%% Export coherency for plotting in R
 r_data = [];
 r_data.binned_cohs = binned_cohs;
 r_data.freqs = f;
