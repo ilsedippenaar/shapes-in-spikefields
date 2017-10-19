@@ -2,6 +2,9 @@ function out = cellArray2mat(c, data_type, fill)
 if numel(c) == 0
   out = [];
   return
+elseif numel(c) == 1
+  out = c{1};
+  return
 end
 assert(any(size(c) == 1));
 dim = find(size(c) ~= 1);

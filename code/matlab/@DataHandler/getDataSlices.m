@@ -1,4 +1,4 @@
-function out = getDataSlices(obj, type, select_range, conditions, varargin)
+function [out,times] = getDataSlices(obj, type, select_range, conditions, varargin)
 % assumes conditons.vec covers of the entire data time period (i.e. that
 % all data recorded are reflective of the conditions specified and that
 % there aren't data recorded when conditions were not).
@@ -99,7 +99,7 @@ else
     for j=1:numel(times)
       start_idx = binarySearch(data{i}, times(j)+select_range(1), ']');
       stop_idx = binarySearch(data{i}, times(j)+select_range(2), '(');
-      out{i}{j} = convertFunc(data{i}(start_idx:stop_idx));
+      out{i}{j} = convertFunc(data{i}(start_idx:stop_idx) - double(times(j)));
     end
   end
 end

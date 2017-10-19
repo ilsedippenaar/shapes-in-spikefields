@@ -25,8 +25,9 @@ for i=1:obj.num_units
   end
 end
 
-% sort data
+% sort data and exclude duplicates
 for i=1:obj.num_units
+  continuous_spikes{i} = unique(continuous_spikes{i});
   if ~issorted(continuous_spikes{i})
     warning('Spikes not sorted');
     continuous_spikes{i} = sort(continuous_spikes{i});

@@ -108,7 +108,7 @@ classdef DataHandler
   end
   methods
     out = select(obj, varargin)
-    out = getDataSlices(obj, data, type, select_range, conditions, varargin)
+    [out,times] = getDataSlices(obj, data, type, select_range, conditions, varargin)
     obj = clean(obj, varargin)
     dh_structs = split(obj, betweens)
     function printSummary(obj, fd)

@@ -1,9 +1,9 @@
 function out = apply(f, data, dim, out_length)
 if nargin < 4
-  out_length = size(data,dim);
   if nargin < 3
     dim = 1;
   end
+  out_length = size(data,dim);
 end
 
 permute_vec = circshift(1:ndims(data), dim-1);

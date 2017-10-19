@@ -101,3 +101,15 @@ end
 dhs = [all_dhs{:}];
 dhs = dhs([dhs.num_trials] ~= 0);
 clear all_dhs num idx i j 
+
+params = [];
+% Selecting
+params.names = {'shape', 'saccade'};
+params.length_postnoise_response = 1000;
+params.length_presaccade_response = 50;
+% Multitaper
+params.T = 0.5;
+params.W = 6;
+params.window_size = 0.064;
+% Plotting
+params.freq_cutoff = 120;
