@@ -58,7 +58,7 @@ mat_file <- readMat(file.path(data_dir, 'interelectrode_cohs.mat'))
 dist_bins <- mat_file[[3]]
 legend_labels <- c()
 for (i in 1:dim(dist_bins)[2]) {
-  legend_labels[i] = TeX(sprintf('%.0f - %.0f $\\mu m$', dist_bins[1,i], dist_bins[2,i]))
+  legend_labels[i] <- TeX(sprintf('%.0f - %.0f $\\mu m$', dist_bins[1,i], dist_bins[2,i]))
 }
 colors <- matlab::fliplr((matlab::jet.colors(length(legend_labels))))
 freqs <- as.numeric(mat_file[[2]])
