@@ -1,4 +1,5 @@
 function out = regressReactionTimes(dh, between)
+% deprecated
 lfps = dh.select('type','lfp', 'between', between, ...
   'trial_section', 'shape_to_saccade', 'trial_result', {'true_positive'});
 first_not_empty = find(cellfun(@numel, lfps{1}),1);

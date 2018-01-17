@@ -87,3 +87,14 @@ colorbar;
 for i=1:get(gcf, 'Number')
   close(gcf);
 end
+%%
+e = [];
+for j=1:numel(dhs)
+    d = cellfun(@(c) c{5}, {dhs(j).trials.sections}, 'UniformOutput', false);
+for i=1:numel(d)
+    if ~isempty(d{i}) && ~isempty(dhs(j).trials(i).saccade)
+        e = [e, d{i}-dhs(j).trials(i).saccade];
+    end
+end
+end
+max(e)

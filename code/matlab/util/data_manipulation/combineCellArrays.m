@@ -1,4 +1,10 @@
 function out = combineCellArrays(data_type, varargin)
+if nargin < 2
+  out = {};
+  return
+end
+valid_idxs = ~cellfun(@isempty, varargin);
+varargin = varargin(valid_idxs);
 shape = size(varargin{1});
 for i=1:numel(varargin)
   assert(iscell(varargin{i}) && all(size(varargin{i}) == shape));

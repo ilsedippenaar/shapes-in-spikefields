@@ -1,4 +1,4 @@
-function trials_out = makeTrialRepresentation(obj, trial_struct)
+code    function trials_out = makeTrialRepresentation(obj, trial_struct, min_reaction_time)
 trials_out(obj.num_trials).sections = [];
 trials_out(obj.num_trials).saccade = [];
 trials_out(obj.num_trials).result = [];
@@ -47,7 +47,7 @@ for i=1:obj.num_trials
       if isempty(saccade)
         result = 'false_negative';
       else
-        if saccade > shape + 50 % 50 ms added since reaction times can't be that quick
+        if saccade > shape + min_reaction_time
           result = 'true_positive';
         else
           result = 'false_positive';

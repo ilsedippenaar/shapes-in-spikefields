@@ -1,4 +1,16 @@
 function out = normalizeData(data, varargin)
+%NORMALIZEDATA Expands time series data to be the same length
+% The data provided can be a numeric matrix or a cell array or matrices.
+% This function accepts 3 keyword arguments. The dim (default first
+% non-singleton dimension of the first element in data) sets the dimension
+% to expand. len sets a size to expand to, and if unspecified will default
+% to the least common multiple (LCM) of the lengths of the given data. This 
+% can be very, very memory intensive if the lengths of the data given are 
+% large and differ only slightly. The method parameter can be 'interp', in 
+% which case linear interpolation is used to expand (useful with a set len
+% parameter) or can be unspecified, in which case an LCM approach is taken.
+%   For example: normalizeData({1:2,1:3}) returns {[1,1,1,2,2,2],
+%   [1,1,2,2,3,3]}
 if isempty(data)
   out = [];
   return

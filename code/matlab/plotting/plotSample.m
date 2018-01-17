@@ -1,4 +1,8 @@
-function plt = plotRaw(dh, start_time, num_seconds, unit_num)
+function plt = plotSample(dh, start_time, num_seconds, unit_num)
+%PLOTSAMPLE For use in data exploration and verification
+% Plots the mean of the LFPs for a number of seconds (num_seconds) after
+% the start time (start_time). Alongside the mean LFP, it plots the spikes
+% from a specified unit and the trial events in different colors.
 plt = figure('Visible', 'off');
 plot(mean(dh.lfps, 2));
 xlim([start_time start_time+num_seconds*dh.lfp_sample_freq]);

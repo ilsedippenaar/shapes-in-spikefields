@@ -50,6 +50,7 @@ classdef DataHandler
       p.addParameter('save_name', []);
       p.addParameter('date', []);
       p.addParameter('number_on_date', 1);
+      p.addParameter('min_reaction_time', 50); % 50 ms added since reaction times can't be that quick
       p.addParameter('clean', false);
       p.addParameter('verbose', true);
       p.parse(varargin{:});
@@ -80,7 +81,7 @@ classdef DataHandler
             [obj.electrode_mapping{elec_num,2} i];
         end
 
-        obj.trials = obj.makeTrialRepresentation(args.trial_struct);
+        obj.trials = obj.makeTrialRepresentation(args.trial_struct, args.min_reaction_time);
         obj.spikes = obj.concatSpikes(args.trial_struct, valid_unit_selec);
 
         all_events = [obj.trials.sections];
