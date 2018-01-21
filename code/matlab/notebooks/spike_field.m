@@ -41,8 +41,8 @@ for i=1:numel(res_conds)
   
   % TODO: this is super wrong - probably fixed now?
   num_in_day = num_in_day(valid_days);
-  tmp = cumsum(num_in_day);
-  trial_idxs_bounds = [1,tmp(1:end-1)+1; tmp];
+  trial_lfps = cumsum(num_in_day);
+  trial_idxs_bounds = [1,trial_lfps(1:end-1)+1; trial_lfps];
   all_idxs = cell(size(trial_idxs_bounds,2));
   for j=1:size(trial_idxs_bounds,2)
     all_idxs{j} = trial_idxs_bounds(1,j):trial_idxs_bounds(2,j);
@@ -65,12 +65,12 @@ for i=1:numel(res_lfps) % result
   for j=1:numel(res_lfps{i}) % day
     fprintf('%d\n', j);
     % rearrange to have electrodes nested in a trial
-    tmp = cell(1,numel(res_lfps{i}{j}));
+    trial_lfps = cell(1,numel(res_lfps{i}{j}));
     for k=1:numel(res_lfps{i}{j}) % electrode
       % trials to cell array
-      tmp{k} = mat2cell(res_lfps{i}{j}{k}, size(res_lfps{i}{j}{k},1), repelem(1,size(res_lfps{i}{j}{k},2)));
+      trial_lfps{k} = mat2cell(res_lfps{i}{j}{k}, size(res_lfps{i}{j}{k},1), repelem(1,size(res_lfps{i}{j}{k},2)));
     end
-    trial_lfps = combineCellArrays('single', tmp{:});
+    trial_lfps = combineCellArrays('single', trial_lfps{:});
     res_psd{i}{j} = cell(1,numel(trial_lfps));
     for k=1:numel(trial_lfps)
       [res_psd{i}{j}{k},f] = mtspectrumc(trial_lfps{k}(1:-select_range(1),:), mt_params);
@@ -79,7 +79,7 @@ for i=1:numel(res_lfps) % result
   end
   % get whether a trial had high LFP power
   freq_idxs = and(f >= freq_range(1), f < freq_range(2));
-  res_mean_pows{i} = cellArray2mat(cellfun(@(c) mean(c(freq_idxs,:)), res_psd{i}, 'UniformOutput', false));
+  res_mean_pows{i} = cellArray2mat(cellfun(@(c) mean(c(freq_idxs,:),1), res_psd{i}, 'UniformOutput', false));
 end
 is_high_tr = cell(size(res_conds));
 med_lfp_pow = median(cellArray2mat(res_mean_pows));
@@ -117,9 +117,9 @@ for i=1:numel(res_pow_spikes)
   for j=1:numel(res_pow_spikes{i}) % days
     % if a day doesn't have an electrode, tmp{n} is just set to [], which
     % is later ignored by cellArray2mat(all_smoothed{i})
-    tmp = cellfun(@(c) calculateSmoothedSpikes(c,gausswin(30),select_range(1),diff(select_range)),...
+    trial_lfps = cellfun(@(c) calculateSmoothedSpikes(c,gausswin(30),select_range(1),diff(select_range)),...
                  res_pow_spikes{i}{j}, 'UniformOutput', false);
-    all_smoothed{i}{j} = cellArray2mat(tmp);
+    all_smoothed{i}{j} = cellArray2mat(trial_lfps);
   end
   all_smoothed{i} = cellArray2mat(all_smoothed{i});
   plt = plotMeanAndStds(all_smoothed{i},'x', select_range(1):select_range(2)-1);

@@ -1,4 +1,4 @@
-function [inter_cohs, num_in_bins,binned_cohs] = calculateInterelecDistCoherence(cohs, dist_bins, electrode_mapping)
+function [inter_cohs, num_in_bins,binned_cohs, std_err] = calculateInterelecDistCoherence(cohs, dist_bins, electrode_mapping)
 s = size(cohs);
 n = s(end);
 inter_cohs = zeros([s(1:end-2),size(dist_bins,2)]);
@@ -34,4 +34,5 @@ for i=1:size(dist_bins,2)
   end
   num_in_bins(i) = num;
 end
+std_err = cellArray2mat(cellfun(@(c) 1.96 * std(c,0,2) / sqrt(size(c,2)), binned_cohs, 'UniformOutput', false));
 end

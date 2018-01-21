@@ -6,6 +6,8 @@ if isnumeric(spikes)
   spikes = {spikes};
 end
 spikes = expandSpikes(spikes, start, len);
-smoothed = apply(@(x) conv(double(x), window, 'same'), spikes, 1, len);
-t = start:start+len-1;
+out_len = len - numel(window) + 1;
+smoothed = apply(@(x) conv(double(x), window, 'valid'), spikes, 1, out_len);
+offset = (numel(window)-1)/2;
+t = start+offset:start+len-1-offset;
 end
