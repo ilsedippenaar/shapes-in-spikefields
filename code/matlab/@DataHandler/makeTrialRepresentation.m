@@ -1,4 +1,4 @@
-code    function trials_out = makeTrialRepresentation(obj, trial_struct, min_reaction_time)
+function trials_out = makeTrialRepresentation(obj, trial_struct, min_reaction_time)
 trials_out(obj.num_trials).sections = [];
 trials_out(obj.num_trials).saccade = [];
 trials_out(obj.num_trials).result = [];
