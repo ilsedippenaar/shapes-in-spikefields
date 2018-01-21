@@ -1,7 +1,7 @@
 params = [];
 % Selecting
 params.names = {'shape', 'saccade'};
-params.length_postnoise_response = 250;
+params.length_postnoise_response = 1000;
 params.length_presaccade_response = 50;
 params.length_min_reaction_time = 50;
 % Multitaper
@@ -10,7 +10,7 @@ params.W = 6;
 params.window_size = 0.064;
 params.Fs = 1000;
 % Plotting
-params.freq_cutoff = 120;
+params.freq_cutoff = 100;
 
 if exist('dhs', 'var') ~= 1
   dhs = DataHandler.fromDates(datetime('2013-05-1'):datetime('2013-05-29'), ...

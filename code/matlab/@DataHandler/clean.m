@@ -1,6 +1,8 @@
 function obj = clean(obj, varargin)
 p = inputParser;
 p.addParameter('cosine_dist_cutoff', 0.5);
+p.addParameter('remove_60', true);
+p.addParameter('lowpass', 100);
 p.parse(varargin{:});
 args = p.Results;
 
@@ -27,4 +29,14 @@ for i=1:numel(valid_spike_elec_idxs)
   electrode_mapping{valid_spike_elec_idxs(i),2} = [electrode_mapping{valid_spike_elec_idxs(i),2}, i];
 end
 obj.electrode_mapping = electrode_mapping;
+
+% if args.remove_60
+%   w0 = 60/(obj.lfp_sample_freq/2);
+%   [b,a] = iirnotch(w0, w0/35);
+%   obj.lfps = filter(b, a, single(obj.lfps));
+% end
+% if args.lowpass
+%   [z,p,k] = butter(8, args.lowpass / (obj.lfp_sample_freq/2), 'low');
+%   obj.lfps = sosfilt(zp2sos(z,p,k), single(obj.lfps));
+% end
 end
