@@ -1,0 +1,106 @@
+```{r, echo=F, warning=F, message=F}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(latex2exp)
+library(R.matlab)
+
+source('config.R')
+```
+
+```{r, echo=F}
+folder_name <- 'jan_grant_app'
+
+load_mat <- function(name) {
+  d <- readMat(file.path(data_dir, folder_name, paste(name, '.mat', sep = '')))
+  d[['x']] <- as.matrix(as.numeric(d[['x']])) # make x a column vector
+  d
+}
+
+std_dev_plot_from_mat <- function(name, ...) {
+  d <- load_mat(name)
+  x <-  d[['x']]
+  y <- d[['y']]
+  std_err <- d[['std.err']]
+  std_dev_plot(x, y, std_err, ...)
+}
+
+std_dev_plot <- function(x, y, std_err, color = 'blue', legend_labels=NULL) {
+  n <- dim(y)[2]
+  if (n > 1)
+    colors <- matlab::fliplr(matlab::jet.colors(n))
+  else
+    colors <- color
+  means <- data.frame(x=x, y=y)
+  colnames(means) <- c('x', 1:n)
+  stds <- data.frame(x=x, std_err=std_err)
+  colnames(stds) <- c('x', 1:n)
+  p <- means %>% 
+    gather('name', y, -x) %>%
+    left_join(stds %>% gather('name', std_err, -x), by = c('x', 'name')) %>%
+    ggplot(aes(x = x)) +
+    geom_line(aes(y = y, col = name), size=1) +
+    geom_ribbon(aes(ymin = y-std_err, ymax = y+std_err, fill = name), alpha=0.2) +
+    scale_color_manual(labels=legend_labels, name = NULL, values = colors) +
+    scale_fill_manual(values = colors) +
+    guides(fill=F) +
+    theme_minimal() +
+    theme(text = element_text(size=16))
+  if (is.null(legend_labels)) p <- p + guides(color = F)
+  p
+}
+```
+
+```{r, fig.cap='1a', echo=F}
+p <- std_dev_plot_from_mat('1_a') + xlab('Frequency (Hz)') + ylab('Success rate')
+pdf(file.path(plot_save_dir, folder_name, '1_a.pdf'))
+print(p)
+dev.off()
+p
+```
+
+```{r, fig.cap='1b', echo=F}
+p <- std_dev_plot_from_mat('1_b') + xlab('Phase (degrees)') + ylab('Success rate')
+pdf(file.path(plot_save_dir, folder_name, '1_b.pdf'))
+print(p)
+dev.off()
+p
+```
+
+```{r, fig.cap='2a', echo=F}
+d <- load_mat('2_a')
+dist_bins <- d[['dist.bins']]
+legend_labels <- c()
+for (i in 1:dim(dist_bins)[2]) {
+  legend_labels[i] <- TeX(sprintf('%.0f - %.0f $\\mu m$', dist_bins[1,i], dist_bins[2,i]))
+}
+
+p <- std_dev_plot_from_mat('2_a', legend_labels = legend_labels) +
+  xlab('Frequency (Hz)') + ylab('Coherence') + 
+  theme(legend.text = element_text(size=12), 
+        legend.position = c(0.98,0.98),
+        legend.justification = c('right', 'top'),
+        legend.box.background = element_rect(inherit.blank = T, linetype = 1, color = 'grey'))
+pdf(file.path(plot_save_dir, folder_name, '2_a.pdf'))
+print(p)
+dev.off()
+p
+```
+
+```{r, fig.cap='2b', echo=F}
+p <- std_dev_plot_from_mat('2_b') + xlab('Frequency (Hz)') + ylab(TeX('$\\sigma$ (mm)'))
+pdf(file.path(plot_save_dir, folder_name, '2_b.pdf'))
+print(p)
+dev.off()
+p
+```
+
+```{r, fig.cap='3', echo=F}
+for (letter in letters[1:4]) {
+  name <- paste('3_', letter, sep = '')
+  p <- std_dev_plot_from_mat(name) + xlab('Time (ms)') + ylab('Mean firing rate (Hz)')
+  pdf(file.path(plot_save_dir, folder_name, paste(name, '.pdf', sep = '')))
+  print(p)
+  dev.off()
+}
+```
