@@ -218,7 +218,7 @@ saveToR(pre_shape_freqs, sigmas(:,1), sigmas(:,3)-sigmas(:,1), data_dir, '2_b');
 %% Plot 3
 % must use pre_shape_freqs here since is_high_tr is determined exclusively
 % from pre-shape signal
-window_size = 50;
+window_size = 1;
 [split_spikes, split_lfps] = splitByLowHigh(spikes, lfps, is_high_trial, alpha_idx);
 % A = Success / low       C = Failure / low
 % B = Success / high      D = Failure / high
@@ -247,6 +247,25 @@ for i=1:numel(split_spikes)
   close(plt);
   
   saveToR(x, y, std_err, data_dir, sprintf('3_%s', plot_3_names{i}));
+end
+%% Plot 4
+plot_4_mt_params = mt_params;
+plot_4_mt_params.err = [1, 0.95];
+for i=1:numel(all_smoothed)
+  % TODO: clean up x<0   code
+  [S,f,Serr] = mtspectrumc(all_smoothed{1}(x<0,:), plot_4_mt_params);
+  plt = figure('Visible', 'off');
+  plot(f,10*log10(S));
+  hold on;
+  plot(f, 10*log10(Serr), 'r:');
+  plt.Color = 'white';
+  xlabel('Frequency (Hz)');
+  ylabel('Power');
+  saveFigures(plt, fullfile(plot_save_dir, folder_name, sprintf('pngs/4_%s.png', plot_3_names{i})), false);
+  savefig(plt, fullfile(plot_save_dir, folder_name, sprintf('figs/4_%s.fig', plot_3_names{i})));
+  close(plt);
+  
+  saveToR(f, S, Serr, data_dir, sprintf('4_%s', plot_3_names{i}));
 end
 %%
 kl_divs = zeros(1,numel(pre_shape_freqs)-1);
