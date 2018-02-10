@@ -98,7 +98,8 @@ p
 ```{r, fig.cap='3', echo=F}
 for (letter in letters[1:4]) {
   name <- paste('3_', letter, sep = '')
-  p <- std_dev_plot_from_mat(name) + xlab('Time (ms)') + ylab('Mean firing rate (Hz)')
+  p <- std_dev_plot_from_mat(name) + ylim(c(6.5, 12.5)) +
+    xlab('Time (ms)') + ylab('Mean firing rate (Hz)')
   pdf(file.path(plot_save_dir, folder_name, paste(name, '.pdf', sep = '')))
   print(p)
   dev.off()
