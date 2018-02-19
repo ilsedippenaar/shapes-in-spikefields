@@ -96,9 +96,18 @@ p
 ```
 
 ```{r, fig.cap='3', echo=F}
+all_min = Inf
+all_max = -Inf
 for (letter in letters[1:4]) {
   name <- paste('3_', letter, sep = '')
-  p <- std_dev_plot_from_mat(name) + ylim(c(6.5, 12.5)) +
+  mat <- load_mat(name)
+  all_min = min(min(mat[['y']]-mat[['std.err']]), all_min)
+  all_max <- max(max(mat[['y']]+mat[['std.err']]), all_max)
+}
+ylimits <- c(all_min - (all_max-all_min)/10, all_max + (all_max-all_min)/10)
+for (letter in letters[1:4]) {
+  name <- paste('3_', letter, sep = '')
+  p <- std_dev_plot_from_mat(name) + ylim(ylimits) +
     xlab('Time (ms)') + ylab('Mean firing rate (Hz)')
   pdf(file.path(plot_save_dir, folder_name, paste(name, '.pdf', sep = '')))
   print(p)
