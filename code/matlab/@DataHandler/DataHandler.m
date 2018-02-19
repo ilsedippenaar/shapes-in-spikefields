@@ -11,8 +11,10 @@ classdef DataHandler
     ts_per_ms % timestamps per millisecond
     electrode_mapping
     unit_snr
+    has_spikes
     date
     number_on_date = 1 % given certain selection parameters to avoid noise, there may be multiple data handlers for one day
+    monkey_name
     
     section_map = containers.Map(...
       {'pre_trial', 'start_to_fix', 'fix_to_noise', 'noise_to_shape', 'shape_to_stop', 'post_trial', ...
@@ -50,6 +52,7 @@ classdef DataHandler
       p.addParameter('save_name', []);
       p.addParameter('date', []);
       p.addParameter('number_on_date', 1);
+      p.addParameter('monkey_name', '');
       p.addParameter('min_reaction_time', 50); % 50 ms added since reaction times can't be that quick
       p.addParameter('clean', false);
       p.addParameter('verbose', true);
@@ -63,18 +66,24 @@ classdef DataHandler
         obj.num_lfp_electrodes = size(args.lfps, 2);
 
         obj.lfps = int16(args.lfps);
-        obj.electrode_mapping = cell(size(args.trial_struct(1).spikes, 2), 2);      
-        obj.electrode_mapping(args.electrode_lfp_mapping,1) = num2cell(1:obj.num_lfp_electrodes);
 
         obj.spike_sample_freq = args.spike_sample_freq;
         obj.lfp_sample_freq = args.lfp_sample_freq;
         obj.ts_per_ms = obj.spike_sample_freq / 1e3;
         obj.date = args.date;
+        obj.monkey_name = args.monkey_name;
 
+        % set spikes
+        obj.electrode_mapping = cell(96, 2);      
+        obj.electrode_mapping(args.electrode_lfp_mapping,1) = num2cell(1:obj.num_lfp_electrodes);
         valid_unit_selec = args.sorted_trodes_list(:,3) > args.SNR_cutoff;
+        obj.spikes = obj.concatSpikes(args.trial_struct, valid_unit_selec);
+        obj.num_units = numel(obj.spikes);
+        obj.has_spikes = ~isempty(obj.spikes);
+        
+        % make electrode mapping
         obj.unit_snr = args.sorted_trodes_list(valid_unit_selec, 3);
         valid_spike_electrodes = args.sorted_trodes_list(valid_unit_selec,1);
-        obj.num_units = numel(valid_spike_electrodes);
         for i=1:obj.num_units
           elec_num = valid_spike_electrodes(i);
           obj.electrode_mapping{elec_num,2} = ...
@@ -82,7 +91,6 @@ classdef DataHandler
         end
 
         obj.trials = obj.makeTrialRepresentation(args.trial_struct, args.min_reaction_time);
-        obj.spikes = obj.concatSpikes(args.trial_struct, valid_unit_selec);
 
         all_events = [obj.trials.sections];
         obj.fixate = int32([all_events{3:obj.num_trial_sections+1:end}]);
@@ -128,31 +136,55 @@ classdef DataHandler
     end
   end
   methods (Static)
-    function dataHandler = fromFile(trial_struct_filename, lfp_filename, varargin)
+    function data_handler = fromFile(trial_struct_filename, lfp_filename, varargin)
+      p = inputParser;
+      p.addParameter('monkey_name', [], @(x) any(strcmp(x, {'zorin', 'jaws'})));
+      p.KeepUnmatched = true;
+      p.parse(varargin{:});
+      % combine unmatched and results
+      args = table2struct([struct2table(p.Unmatched), struct2table(p.Results)]);
+
       fprintf('Loading trial file...\n');
       trial_file = load(trial_struct_filename);
       fprintf('Loading LFP file...\n');
       lfp_file = load(lfp_filename);
       
-      fprintf('Building DataHandler...\n');
-      p = inputParser;
-      p.KeepUnmatched = true;
-      p.parse(varargin{:});
-      args = p.Unmatched;
+      % Check fields for safeness
+      if ~isfield(lfp_file, 'NS4') || ~isfield(trial_file, 'file') || ~any(isfield(trial_file, {'tr', 'trials'}))
+        fprintf('Data needed in files is not present.\n');
+        data_handler = [];
+        return
+      end
       
+      fprintf('Building DataHandler...\n');     
       args.lfp_sample_freq = lfp_file.NS4.MetaTags.SamplingFreq * lfp_file.NS4.resampleFrac;
       args.spike_sample_freq = lfp_file.NS4.MetaTags.TimeRes;
-      args.trial_struct = trial_file.trials;
+      
       args.sorted_trodes_list = trial_file.file.sortedtrodes(:,1:3);
-      args.lfps = lfp_file.NS4.rData;
-      args.electrode_lfp_mapping = [lfp_file.NS4.ElectrodesInfo.ElectrodeID];
-      dataHandler = DataHandler(args);
+      if strcmp(args.monkey_name, 'zorin')
+        trial_struct = trial_file.tr;
+        % cleanup zorin data representation
+        n = size(args.sorted_trodes_list,1);
+        if all(isfield(trial_struct, {'sortsp', 'intsort'}))
+          for i=1:numel(trial_struct)
+            trial_struct(i).sortsp = trial_struct(i).sortsp(1:n);
+            trial_struct(i).intsort = trial_struct(i).intsort(1:n);
+          end
+        end
+      else
+        trial_struct = trial_file.trials;
+      end
+      args.trial_struct = trial_struct;
+      elec_ids = [lfp_file.NS4.ElectrodesInfo.ElectrodeID];
+      args.lfps = lfp_file.NS4.rData(:,elec_ids <= 96);
+      args.electrode_lfp_mapping = elec_ids(elec_ids <= 96);
+      data_handler = DataHandler(args);
     end
-    dataHandler = fromDates(dates, trial_dir, lfp_dir, data_handler_dir, varargin)
+    data_handlers = fromDates(dates, trial_dir, lfp_dir, data_handler_dir, varargin)
   end
   methods (Access = private)
     cont_spikes = concatSpikes(obj, trial_struct, valid_unit_selec)
-    trials = makeTrialRepresentation(obj, trial_struct)
+    trials = makeTrialRepresentation(obj, trial_struct, min_reaction_time)
     out = selectSingle(obj, type, between, buffer, index, trial_num, trial_section)
     function obj = initializeWithStruct(obj, dh_struct)
       names = fieldnames(dh_struct);

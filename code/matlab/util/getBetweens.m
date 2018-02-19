@@ -22,6 +22,10 @@ end
 betweens = [betweens{:}];
 
   function valid_intervals = getValidIntervals(invalid_idxs, window_size, total_size)
+    if isempty(invalid_idxs)
+      valid_intervals = [1; total_size];
+      return
+    end
     edges = find(diff(invalid_idxs)>1);
     beg_offset = ceil((window_size+1)/2); % convolution silliness and indexing - odd length window is symmetric, even isn't
     end_offset = ceil(window_size/2);

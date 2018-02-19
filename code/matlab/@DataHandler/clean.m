@@ -9,7 +9,8 @@ args = p.Results;
 dist_mat = calculateAdjMatrix(obj.lfps, 'cosine');
 valid_idxs = find(mean(dist_mat,1) >= args.cosine_dist_cutoff);
 valid_elec_idxs = arrayfun(@(x) getElectrodeIdxFromLfpIdx(obj.electrode_mapping, x), valid_idxs);
-valid_spike_idxs = cell2mat(arrayfun(@(x) obj.electrode_mapping{x,2}, valid_elec_idxs, 'UniformOutput', false));
+% valid_spike_idxs = cell2mat(arrayfun(@(x) obj.electrode_mapping{x,2}, valid_elec_idxs, 'UniformOutput', false));
+valid_spike_idxs = cellArray2mat({obj.electrode_mapping{valid_elec_idxs,2}});
 valid_spike_elec_idxs = arrayfun(@(x) getElectrodeIdxFromUnitNum(obj.electrode_mapping, x), valid_spike_idxs);
 
 fprintf('Eliminating %d electrodes\n', obj.num_lfp_electrodes-numel(valid_idxs));

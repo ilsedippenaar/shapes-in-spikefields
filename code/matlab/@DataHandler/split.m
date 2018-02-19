@@ -1,4 +1,7 @@
 function dhs = split(obj, betweens)
+if nargin < 2
+  betweens = getBetweens(obj.lfps);
+end
 assert(isnumeric(betweens) && size(betweens,1)==2);
 
 % Initialize

@@ -15,6 +15,7 @@ else
 end
 if numel(data) == 0 % can assume data{1} exists
   out = [];
+  times = [];
   return
 end
 start_time = 0;
@@ -26,7 +27,7 @@ end
 if strcmp(type, 'lfp')
   end_time = numel(data{1}) + start_time - 1;
 else
-  end_time = min(cellfun(@(c) c(end), data));
+  end_time = min(cellfun(@(c) c(end), data(~cellfun(@isempty, data))));
 end
 
 % make difference vectors for the negated conditions
@@ -78,7 +79,7 @@ while time + select_range(2) - 1 <= end_time
   if isempty(time) || time + select_range(2) - 1 > end_time
     break
   end
-  times = [times time];
+  times(end+1) = time;
   time = time + diff(select_range); % simulate copy
 end
 

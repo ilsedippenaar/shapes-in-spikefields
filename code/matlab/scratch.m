@@ -98,3 +98,32 @@ for i=1:numel(d)
 end
 end
 max(e)
+%%
+a = zeros(1,numel(trials));
+args = [];
+args.betweens = [];
+args.length_postnoise_response = params.length_postnoise_response;
+args.length_analysis_window = 256;
+for i=1:numel(trials)
+  a(i) = isTrialValid(trials(i), args);
+end
+%%
+function valid = isTrialValid(t, args)
+  in_valid_section = zeros(1,size(args.betweens,2));
+  for j_=1:size(args.betweens,2)
+    intersection = intersectInterval(args.betweens(:,j_), [t.startTime, t.stopTime]);
+    in_valid_section(j_) = ~isempty(intersection) && all(intersection == [t.startTime, t.stopTime]);
+  end
+  shape_ = t.stim.shapeon;
+  noise_ = t.stim.on;
+  valid = ~isempty(shape_) && ~isempty(noise_) && shape_ >= noise_ + args.length_postnoise_response + args.length_analysis_window && ...
+      (isempty(in_valid_section) || any(in_valid_section));
+end
+%%
+dhs = DataHandler.fromDates(datetime('2013-06-13'):datetime('2013-06-13'), ...
+    fullfile(data_dir, 'trials/jaws'), ...
+    fullfile(data_dir, 'lfps/jaws'), ...
+    fullfile(data_dir, 'data_handlers/jaws'), ...
+    'clean', true, ...
+    'min_reaction_time', params.length_min_reaction_time, ...
+    'monkey_name', 'jaws');

@@ -1,6 +1,6 @@
 function loc = getLocFromElectrodeIdx(idx)
 if idx < 1 || idx > 96
-  loc = [];
+  loc = nan(1,2);
 elseif idx <= 8
   loc = [1 idx+1];
 elseif idx >= 89
