@@ -11,9 +11,7 @@ for i=1:obj.num_trials
   end
   if i == obj.num_trials
     % calculate the very end of data that exists
-    lfp_end = size(obj.lfps, 1);
-    spike_end = max(cellArray2mat(cellfun(@max, tr.intsort, 'UniformOutput', false))); % some are empty
-    next_trial_start = max(lfp_end, spike_end);
+    next_trial_start = size(obj.lfps, 1);
   else
     next_trial_start = trial_struct(i+1).startTime;
   end

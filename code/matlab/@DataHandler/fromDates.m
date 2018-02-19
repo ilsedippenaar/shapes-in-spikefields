@@ -71,6 +71,9 @@ for i=1:total_valid
     args.date = valid(valid_idx).date;
     dh = DataHandler.fromFile(fullfile(trial_dir, valid(valid_idx).files{1}{1}), ...
                               fullfile(lfp_dir, valid(valid_idx).files{2}{1}), args);
+    if isempty(dh)
+      warning('DataHandler creation for %s failed.\n', valid(valid_idx).date);
+    end
   else
     fprintf('Loading DataHandler from cached state for %s\n', valid(valid_idx).date);
     tmp = load(dh_file);

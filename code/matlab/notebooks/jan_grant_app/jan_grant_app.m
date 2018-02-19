@@ -39,7 +39,7 @@ for i=1:numel(conds)
       dhs(j).getDataSlices('lfp', select_range, ...
        cell2struct({t, false, [0,1]},{'vec','negate','range'},2)));
   end
-  valid_days = ~cellfun(@(c) all(cellfun(@isempty, c)), spikes{i});
+  valid_days = ~cellfun(@(c) isempty(c) || all(cellfun(@isempty, c)), spikes{i});
   spikes{i} = spikes{i}(valid_days);
   lfps{i} = lfps{i}(valid_days);
 end
@@ -88,7 +88,7 @@ for i=1:96
   fprintf('%d / %d\n', i, 96);
   all_cohs(:,i,i) = 1;
   for j=i+1:96
-    [~,idxs1,idxs2] = intersect(combined_indices{i},combined_indices{j});
+    [~,idxs1,idxs2] = intersect(combined_indices{i}, combined_indices{j});
     [C,~,~,~,~,tmp] = coherencyc(combined_lfps{i}(1:-select_range(1),idxs1), combined_lfps{j}(1:-select_range(1),idxs2), mt_params);
     assert(all(tmp == pre_shape_freqs));
     pre_shape_freqs = tmp;
@@ -218,7 +218,7 @@ saveToR(pre_shape_freqs, sigmas(:,1), sigmas(:,3)-sigmas(:,1), data_dir, '2_b');
 %% Plot 3
 % must use pre_shape_freqs here since is_high_tr is determined exclusively
 % from pre-shape signal
-window_size = 1;
+window_size = 50;
 [split_spikes, split_lfps] = splitByLowHigh(spikes, lfps, is_high_trial, alpha_idx);
 % A = Success / low       C = Failure / low
 % B = Success / high      D = Failure / high

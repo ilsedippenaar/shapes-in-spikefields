@@ -1,5 +1,5 @@
 function out = combineCellArrays(data_type, varargin)
-if nargin < 2
+if nargin < 2 || isempty(varargin) || all(cellfun(@isempty, varargin))
   out = {};
   return
 end
