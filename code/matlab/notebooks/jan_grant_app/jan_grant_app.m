@@ -62,20 +62,26 @@ for i=1:numel(lfps) % result
     for k=1:numel(trial_lfps)
       % look from the beginning of the data up to when the shape comes on
       [psds{i}{j}{k},pre_shape_freqs] = mtspectrumc(trial_lfps{k}(1:-select_range(1),:), mt_params);
+      psds{i}{j}{k} = psds{i}{j}{k} / norm(psds{i}{j}{k}, Inf); % normalize so max = 1
     end
     psds{i}{j} = double(cellArray2mat(psds{i}{j}));
   end
 end
 
-% get whether a trial had high LFP power
+% label trials by the relative prevalence of a given frequency
+num_splits = 3;
 combined_psds = cell(size(psds));
 for i=1:numel(combined_psds)
   combined_psds{i} = [psds{i}{:}];
 end
-is_high_trial = cell(size(conds));
-med_lfp_pows = median([combined_psds{:}],2);
+trial_pow_labs = psds; % take advantage of copy-on-write semantics
+lfp_pow_bins = quantile([combined_psds{:}],(0:num_splits)/num_splits, 2);
 for i=1:numel(conds)
-  is_high_trial{i} = cellfun(@(c) c > med_lfp_pows, psds{i}, 'UniformOutput', false);
+  for j=1:numel(psds{i}) % days
+    for k=1:size(psds{i}{j},1) % freqs
+      trial_pow_labs{i}{j}(k,:) = discretize(psds{i}{j}(k,:), lfp_pow_bins(k,:));
+    end
+  end
 end
 
 fprintf('\nCalculating coherences...\n');
@@ -88,10 +94,14 @@ for i=1:96
   fprintf('%d / %d\n', i, 96);
   all_cohs(:,i,i) = 1;
   for j=i+1:96
-    [~,idxs1,idxs2] = intersect(combined_indices{i}, combined_indices{j});
-    [C,~,~,~,~,tmp] = coherencyc(combined_lfps{i}(1:-select_range(1),idxs1), combined_lfps{j}(1:-select_range(1),idxs2), mt_params);
-    assert(all(tmp == pre_shape_freqs));
-    pre_shape_freqs = tmp;
+    if isempty(combined_lfps{i}) || isempty(combined_lfps{j})
+      C = nan(size(all_cohs,1),1);
+    else
+      [~,idxs1,idxs2] = intersect(combined_indices{i}, combined_indices{j});
+      [C,~,~,~,~,tmp] = coherencyc(combined_lfps{i}(1:-select_range(1),idxs1), combined_lfps{j}(1:-select_range(1),idxs2), mt_params);
+      assert(all(tmp == pre_shape_freqs));
+      pre_shape_freqs = tmp;
+    end
     all_cohs(:,i,j) = C;
     all_cohs(:,j,i) = C;
   end
@@ -104,21 +114,25 @@ sigmas = getSpatialCohErrors(all_cohs);
 fprintf('Calculating phases at shape onset...\n');
 phases = cell(1,numel(conds));
 for cond_num=1:numel(conds)
-  phases{cond_num} = getLfpPhases(lfps{cond_num}, pre_shape_freqs, -select_range(1)+1, [1,-select_range], params.Fs);
+  phases{cond_num} = getLfpPhases(lfps{cond_num}, pre_shape_freqs, -select_range(1)+1, [1,-select_range(1)], params.Fs, 'fft');
 end
 %% Plot 1 - Success rate vs frequnecy and phase
 % A
-success_counts = sum([is_high_trial{1}{:}],2);
-failure_counts = sum([is_high_trial{2}{:}],2);
-success_rate = success_counts ./ (success_counts+failure_counts);
+n_success = size([trial_pow_labs{1}{:}],2);
+n_failure = size([trial_pow_labs{2}{:}],2);
+success_counts = countcats(categorical([trial_pow_labs{1}{:}]),2);
+failure_counts = countcats(categorical([trial_pow_labs{2}{:}]),2);
+norm_success_counts = success_counts / n_success;
+norm_failure_counts = failure_counts / n_failure;
+success_rate = norm_success_counts ./ (norm_success_counts+norm_failure_counts);
 % take binomial (bernoulli) error for success rates
-n = size([is_high_trial{1}{:}],2) + size([is_high_trial{2}{:}], 2);
-std_err = sqrt(success_rate .* (1-success_rate) / n);
+n = success_counts + failure_counts;
+std_err = sqrt(success_rate .* (1-success_rate) ./ n);
 
 plt = figure('Visible', 'off');
 x = pre_shape_freqs(pre_shape_freqs < freq_cutoff);
-y = success_rate(pre_shape_freqs < freq_cutoff);
-std_err = std_err(pre_shape_freqs < freq_cutoff);
+y = success_rate(pre_shape_freqs < freq_cutoff,:);
+std_err = std_err(pre_shape_freqs < freq_cutoff, :);
 plot(x, y);
 hold on
 plot(x, [y+std_err, y-std_err], 'r:');
@@ -130,7 +144,7 @@ saveFigures(plt, fullfile(plot_save_dir, folder_name, 'pngs/1_a.png'), false);
 savefig(plt, fullfile(plot_save_dir, folder_name, 'figs/1_a.fig'));
 close(plt);
 
-saveToR(x, y, std_err, data_dir, '1_a');
+saveToR(x, y, std_err, data_dir, folder_name, '1_a');
 
 % B
 nbins = 30;
@@ -157,14 +171,14 @@ saveFigures(plt, fullfile(plot_save_dir, folder_name, 'pngs/1_b.png'), false);
 savefig(plt, fullfile(plot_save_dir, folder_name, 'figs/1_b.fig'));
 close(plt);
 
-saveToR(x, y, std_err, data_dir, '1_b');
+saveToR(x, y, std_err, data_dir, folder_name, '1_b');
 
 % C
 success_counts = cellfun(@numel, phases{1});
 failure_counts = cellfun(@numel, phases{2});
 success_rate = success_counts ./ (success_counts+failure_counts);
 % take binomial (bernoulli) error for success rates
-n = size([is_high_trial{1}{:}],2) + size([is_high_trial{2}{:}], 2);
+n = size([trial_pow_labs{1}{:}],2) + size([trial_pow_labs{2}{:}], 2);
 std_err = sqrt(success_rate .* (1-success_rate) / n);
 
 plt = figure('Visible', 'off');
@@ -183,7 +197,7 @@ saveFigures(plt, fullfile(plot_save_dir, folder_name, 'pngs/1_c.png'), false);
 savefig(plt, fullfile(plot_save_dir, folder_name, 'figs/1_c.fig'));
 close(plt);
 
-saveToR(x, y, std_err, data_dir, '1_c');
+saveToR(x, y, std_err, data_dir, folder_name, '1_c');
 %% Plot 2
 % A
 breaks = linspace(0, hypot(9,9)*400, 6);
@@ -199,7 +213,7 @@ saveFigures(plt, fullfile(plot_save_dir, folder_name, 'pngs/2_a.png'), false);
 savefig(plt, fullfile(plot_save_dir, folder_name, 'figs/2_a.fig'));
 close(plt);
 
-saveToR(pre_shape_freqs, inter_cohs, std_err, data_dir, '2_a', 'dist_bins', dist_bins);
+saveToR(pre_shape_freqs, inter_cohs, std_err, data_dir, folder_name, '2_a', 'dist_bins', dist_bins);
 
 % B
 plt = figure('Visible', 'off');
@@ -214,16 +228,17 @@ saveFigures(plt, fullfile(plot_save_dir, folder_name, 'pngs/2_b.png'), false);
 savefig(plt, fullfile(plot_save_dir, folder_name, 'figs/2_b.fig'));
 close(plt);
 
-saveToR(pre_shape_freqs, sigmas(:,1), sigmas(:,3)-sigmas(:,1), data_dir, '2_b');
+saveToR(pre_shape_freqs, sigmas(:,1), sigmas(:,3)-sigmas(:,1), data_dir, folder_name, '2_b');
 %% Plot 3
 % must use pre_shape_freqs here since is_high_tr is determined exclusively
 % from pre-shape signal
 window_size = 50;
-[split_spikes, split_lfps] = splitByLowHigh(spikes, lfps, is_high_trial, alpha_idx);
-% A = Success / low       C = Failure / low
-% B = Success / high      D = Failure / high
-plot_3_names = {'a','b','c','d'};
-plot_3_titles = {'Success Low', 'Success High', 'Failure Low', 'Failure High'};
+[split_spikes, split_lfps] = splitByPowLabels(spikes, lfps, trial_pow_labs, num_splits, alpha_idx);
+% A = Success / low       D = Failure / low
+% B = Success / medium    E = Failure / medium
+% C = Success / high      F = Failure / high
+plot_3_names = {'a','b','c','d', 'e', 'f'};
+plot_3_titles = {'Success Low', 'Success Medium', 'Success High', 'Failure Low', 'Failure Medium', 'Failure High'};
 all_smoothed = cell(size(split_spikes));
 for i=1:numel(split_spikes)
   all_smoothed{i} = cell(size(split_spikes{i}));
@@ -246,7 +261,7 @@ for i=1:numel(split_spikes)
   savefig(plt, fullfile(plot_save_dir, folder_name, sprintf('figs/3_%s.fig', plot_3_names{i})));
   close(plt);
   
-  saveToR(x, y, std_err, data_dir, sprintf('3_%s', plot_3_names{i}));
+  saveToR(x, y, std_err, data_dir, folder_name, sprintf('3_%s', plot_3_names{i}));
 end
 %% Plot 4
 plot_4_mt_params = mt_params;
@@ -265,7 +280,7 @@ for i=1:numel(all_smoothed)
   savefig(plt, fullfile(plot_save_dir, folder_name, sprintf('figs/4_%s.fig', plot_3_names{i})));
   close(plt);
   
-  saveToR(f, S, Serr, data_dir, sprintf('4_%s', plot_3_names{i}));
+  saveToR(f, S, Serr, data_dir, folder_name, sprintf('4_%s', plot_3_names{i}));
 end
 %%
 kl_divs = zeros(1,numel(pre_shape_freqs)-1);

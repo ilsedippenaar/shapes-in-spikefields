@@ -3,7 +3,7 @@ params = [];
 params.names = {'shape', 'saccade'};
 params.length_postnoise_response = 1000;
 params.length_presaccade_response = 50;
-params.length_min_reaction_time = 50;
+params.length_min_reaction_time = 150;
 % Multitaper
 params.T = 0.5;
 params.W = 6;

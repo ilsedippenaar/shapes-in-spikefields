@@ -1,4 +1,5 @@
 function plts = plotCombined(dh, between, unit_number)
+between = double(between);
 plts = gobjects(1,6);
 window_sizes = [50 100 200 501];
 ticks = round(linspace(1,diff(between),10));
@@ -31,10 +32,10 @@ default_color_order = get(gcf, 'DefaultAxesColorOrder');
 set(gcf, 'DefaultAxesColorOrder', parula(numel(window_sizes)));
 hold on
 legend show
-for size=window_sizes
-  window = gausswin(size);
+for s=window_sizes
+  window = gausswin(s);
   smoothed = conv(window, spike_signal);
-  plot(t(ceil(size/2):end-floor(size/2)), smoothed(size:end-size+1)/sum(window), 'DisplayName', sprintf('%d ms', size));
+  plot(t(ceil(s/2):end-floor(s/2)), smoothed(s:end-s+1)/sum(window), 'DisplayName', sprintf('%d ms', s));
 end
 title(sprintf('Smoothed Spike Rates by Binwidth for Unit %d', unit_number));
 setTicks(ticks, between(1));
@@ -45,7 +46,7 @@ plts(4) = figure('Visible', 'off');
 hold on
 for i=1:numel(dh.spikes)
   plot_spikes = dh.spikes{i}(and(dh.spikes{i} >= between(1), dh.spikes{i} < between(2)));
-  plotLinesAt(plot_spikes, between(1), i-1);
+  plotLinesAt(plot_spikes, between(1), i-1, i, 'Color', 'black', 'LineWidth', 0.1);
 end
 title('Spike Trains');
 ylim([0 numel(dh.spikes)]);
@@ -63,10 +64,10 @@ fixate = dh.fixate(and(dh.fixate >= between(1), dh.fixate < between(2)));
 noise = dh.noise(and(dh.noise >= between(1), dh.noise < between(2)));
 shape = dh.shape(and(dh.shape >= between(1), dh.shape < between(2)));
 saccade = dh.saccade(and(dh.saccade >= between(1), dh.saccade < between(2)));
-plot([fixate; fixate]-between(1)+1, [-1000;1000], 'Color', 'red');
-plot([noise; noise]-between(1)+1, [-1000;1000], 'Color', 'green');
-plot([shape; shape]-between(1)+1, [-1000;1000], 'Color', 'blue');
-plot([saccade; saccade]-between(1)+1, [-1000;1000], 'Color', 'magenta');
+plotLinesAt(fixate', between(1), -1000, 1000, 'Color', 'red');
+plotLinesAt(noise', between(1), -1000, 1000, 'Color', 'green');
+plotLinesAt(shape', between(1), -1000, 1000, 'Color', 'blue');
+plotLinesAt(saccade', between(1), -1000, 1000, 'Color', 'magenta');
 setTicks(ticks, between(1));
 hold off
 
@@ -74,7 +75,7 @@ hold off
     times = string(duration(0, 0, 0, ticks+start-1, 'Format', 'mm:ss'));
     set(gca, 'XTick', ticks, 'XTickLabel', times);
   end
-  function plotLinesAt(times, start, bottom)
-    plot([times; times]-start+1, [0; 1]+bottom, 'Color', 'black', 'LineWidth', 0.1)
+  function plotLinesAt(times, start, bottom, top, varargin)
+    line([times'; times']-start+1, repelem([bottom;top], 1, numel(times)), varargin{:});
   end
 end
