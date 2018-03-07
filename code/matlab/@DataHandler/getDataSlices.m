@@ -9,23 +9,18 @@ args = p.Results;
 
 % validate and parse input
 if strcmp(type, 'lfp')
-  data = mat2cell(obj.lfps, size(obj.lfps,1), ones(1,size(obj.lfps, 2)));
+  data = obj.lfps;
+  data_type = class(obj.lfps);
 else
   data = obj.spikes;
+  data_type = class(obj.spikes{1});
 end
-if numel(data) == 0 % can assume data{1} exists
-  out = [];
-  times = [];
-  return
-end
-start_time = 0;
-if isempty(args.data_type)
-  data_type = class(data{1});
-else
+if ~isempty(args.data_type)
   data_type = args.data_type;
 end
+start_time = 0;
 if strcmp(type, 'lfp')
-  end_time = numel(data{1}) + start_time - 1;
+  end_time = size(data,1) + start_time - 1;
 else
   end_time = min(cellfun(@(c) c(end), data(~cellfun(@isempty, data))));
 end
@@ -84,14 +79,18 @@ while time + select_range(2) - 1 <= end_time
 end
 
 % copy data
-out = cell(1,numel(data));
+if strcmp(type, 'lfp')
+  out = cell(1,size(data,2));
+else
+  out = cell(1,numel(data));
+end
 convertFunc = str2func(data_type);
 if strcmp(type, 'lfp')
   idxs = times - start_time + 1;
-  for i=1:numel(data)
+  for i=1:size(data,2)
     out{i} = zeros(diff(select_range), numel(idxs), data_type);
     for j=1:numel(idxs)
-      out{i}(:,j) = convertFunc(data{i}(idxs(j)+select_range(1) : idxs(j)+select_range(2)-1));
+      out{i}(:,j) = convertFunc(data(idxs(j)+select_range(1) : idxs(j)+select_range(2)-1,i));
     end
   end
 else
