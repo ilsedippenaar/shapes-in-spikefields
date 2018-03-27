@@ -1,0 +1,93 @@
+```{r, echo=F, warning=F, message=F}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(pracma)
+library(latex2exp)
+library(R.matlab)
+
+source('config.R')
+```
+
+```{r, echo=F}
+folder_name <- 'capstone'
+
+load_mat <- function(name) {
+  d <- readMat(file.path(data_dir, folder_name, paste(name, '.mat', sep = '')))
+  d[['x']] <- as.matrix(as.numeric(d[['x']])) # make x a column vector
+  d
+}
+
+std_dev_plot_from_mat <- function(name, ...) {
+  d <- load_mat(name)
+  x <-  d[['x']]
+  y <- d[['y']]
+  std_err <- d[['std.err']]
+  std_dev_plot(x, y, std_err, ...)
+}
+
+std_dev_plot <- function(x, y, std_err, color = 'blue', legend_labels=NULL) {
+  n <- dim(y)[2]
+  if (n > 1)
+    colors <- matlab::fliplr(matlab::jet.colors(n))
+  else
+    colors <- color
+  means <- data.frame(x=x, y=y)
+  colnames(means) <- c('x', 1:n)
+  stds <- data.frame(x=x, std_err=std_err)
+  colnames(stds) <- c('x', 1:n)
+  p <- means %>% 
+    gather('name', y, -x) %>%
+    left_join(stds %>% gather('name', std_err, -x), by = c('x', 'name')) %>%
+    ggplot(aes(x = x)) +
+    geom_line(aes(y = y, col = name), size=1) +
+    geom_ribbon(aes(ymin = y-std_err, ymax = y+std_err, fill = name), alpha=0.2) +
+    scale_color_manual(labels=legend_labels, name = NULL, values = colors) +
+    scale_fill_manual(values = colors) +
+    guides(fill=F) +
+    theme_classic() +
+    theme(text = element_text(size=16))
+  if (is.null(legend_labels)) p <- p + guides(color = F)
+  p
+}
+
+spike_train_lfp_trials <- function(times, spikes, lfp, vjust=0) {
+  s <- zeros(length(times), length(spikes))
+  for (i in 1:size(s,2)) {
+    s[spikes[[i]][[1]],i] <- 1
+  }
+  d <- data.frame(x=times, y=s, lfp=lfp) %>%
+    gather('unit', 'fired', -x, -lfp) 
+  l <- 1:size(s,2)
+  names(l) <- levels(as.factor(d$unit))
+  d$unit <- as.numeric(l[d$unit]) + vjust
+  d %>% 
+    ggplot(aes(x = x / 1000)) + 
+    geom_tile(aes(y = unit, fill = as.factor(fired)), height = 0.8) +
+    geom_line(aes(y = interp1(range(lfp), c(0,0.9*vjust), lfp))) +
+    expand_limits(y = 0) +
+    scale_fill_manual(values = c('white', 'black')) +
+    guides(fill = F) +
+    theme_classic() +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(), 
+          axis.ticks.y = element_blank()) +
+    labs(x = 'Time (s)')
+}
+```
+
+
+```{r}
+trial <- load_mat('trial')$trial
+lfp <- load_mat('lfp')$y
+spikes <- load_mat('spikes')
+
+# this is necessary because ggplot has a bug
+p <- spike_train_lfp_trials(spikes$x, spikes$y, lfp, vjust=10) + 
+  geom_vline(xintercept = c(1.880,2.614,2.831,3.040), color = c('red', 'green', 'blue', 'purple'))
+
+pdf(file.path(plot_save_dir, folder_name, 'summary.pdf'))
+print(p)
+dev.off()
+```
+
