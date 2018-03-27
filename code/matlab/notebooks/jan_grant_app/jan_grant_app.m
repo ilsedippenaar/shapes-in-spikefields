@@ -134,6 +134,7 @@ x = pre_shape_freqs(pre_shape_freqs < freq_cutoff);
 y = success_rate(pre_shape_freqs < freq_cutoff,:);
 std_err = std_err(pre_shape_freqs < freq_cutoff, :);
 plot(x, y);
+legend('Low', 'Medium', 'High');
 hold on
 plot(x, [y+std_err, y-std_err], 'r:');
 plt.Color = 'white';
@@ -298,6 +299,8 @@ end
 
 total_n = [];
 total_n.low_success = sum(cellfun(@(c) numel(c{1}), split_spikes{1,1}));
-total_n.high_success = sum(cellfun(@(c) numel(c{1}), split_spikes{2,1}));
+total_n.med_success = sum(cellfun(@(c) numel(c{1}), split_spikes{2,1}));
+total_n.high_success = sum(cellfun(@(c) numel(c{1}), split_spikes{3,1}));
 total_n.low_failure = sum(cellfun(@(c) numel(c{1}), split_spikes{1,2}));
-total_n.high_failure = sum(cellfun(@(c) numel(c{1}), split_spikes{2,2}));
+total_n.med_failure = sum(cellfun(@(c) numel(c{1}), split_spikes{2,2}));
+total_n.high_failure = sum(cellfun(@(c) numel(c{1}), split_spikes{3,2}));
