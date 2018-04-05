@@ -1,3 +1,3 @@
 startup
 init
-jan_grant_app
+capstone

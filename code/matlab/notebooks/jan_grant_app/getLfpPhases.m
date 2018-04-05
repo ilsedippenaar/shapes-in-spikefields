@@ -6,6 +6,10 @@ end
 phases = cell(1,numel(lfps));
 for i=1:numel(lfps) % day
   day_lfps = lfps{i}(~cellfun(@isempty, lfps{i})); % eliminate empty electrodes
+  if isempty(day_lfps)
+    phases{i} = {};
+    continue
+  end
   day_lfps = reshape([lfps{i}{:}], [size(day_lfps{1}), numel(day_lfps)]); % time x trials x electrode
   day_lfps = mean(day_lfps,3); % time x trials
   phases{i} = cell(1,size(day_lfps,2));

@@ -7,6 +7,12 @@ p.addParameter('data_type', []);
 p.parse(varargin{:});
 args = p.Results;
 
+if strcmp(type, 'lfp') && isempty(obj.lfps) || ...
+   strcmp(type, 'spike') && isempty(obj.spikes)
+  [out, times] = deal([]);
+  return
+end
+
 % validate and parse input
 if strcmp(type, 'lfp')
   data = obj.lfps;
@@ -19,11 +25,7 @@ if ~isempty(args.data_type)
   data_type = args.data_type;
 end
 start_time = 0;
-if strcmp(type, 'lfp')
-  end_time = size(data,1) + start_time - 1;
-else
-  end_time = min(cellfun(@(c) c(end), data(~cellfun(@isempty, data))));
-end
+end_time = size(obj.lfps,1);
 
 % make difference vectors for the negated conditions
 for i=1:numel(conditions)
@@ -97,8 +99,8 @@ else
   for i=1:numel(data)
     out{i} = cell(1,numel(times));
     for j=1:numel(times)
-      start_idx = binarySearch(data{i}, times(j)+select_range(1), ']');
-      stop_idx = binarySearch(data{i}, times(j)+select_range(2), '(');
+      start_idx = binarySearch(data{i}, times(j)+select_range(1), ']', true);
+      stop_idx = binarySearch(data{i}, times(j)+select_range(2), '(', true);
       out{i}{j} = convertFunc(data{i}(start_idx:stop_idx) - double(times(j)));
     end
   end

@@ -1,3 +1,6 @@
 [submodule "code/matlab/external/export_fig"]
 	path = code/matlab/external/export_fig
 	url = https://github.com/altmany/export_fig.git
+[submodule "code/matlab/external/fieldtrip"]
+	path = code/matlab/external/fieldtrip
+	url = https://github.com/fieldtrip/fieldtrip.git

@@ -112,10 +112,9 @@ for i=1:numel(indices)
         stop = binarySearch(spikes, between(2), '(', true);
         out{i} = spikes(start:stop);
       case 'lfp'
-        lfp = obj.lfps(:,index);
         start = max(1, between(1));
-        stop = min(numel(lfp), between(2));
-        out{i} = lfp(floor(start):ceil(stop)-1);
+        stop = min(size(obj.lfps,1), between(2));
+        out{i} = obj.lfps(floor(start):ceil(stop)-1, index);
     end
   else
     out{i} = cell(numel(trial_nums), numel(trial_sections));
