@@ -1,9 +1,9 @@
 params = [];
 % Selecting
 params.names = {'shape', 'saccade'};
-params.length_postnoise_response = 1000;
-params.length_presaccade_response = 50;
-params.length_min_reaction_time = 150;
+params.length_postnoise_response = 260; % from Weiner and Ghose 2014
+params.length_min_reaction_time = 200; % from Weiner and Ghose 2014
+params.length_presaccade_response = 50; % this is just eyeball
 % Multitaper
 params.T = 0.5;
 params.W = 6;
@@ -17,8 +17,8 @@ trial_dir = fullfile(data_dir, 'trials', name);
 lfp_dir = fullfile(data_dir, 'lfps', name);
 dh_dir = fullfile(cache_dir, 'data_handlers', name);
 if strcmp(name, 'jaws')
-  %dates = datetime('2013-05-1'):datetime('2013-07-19');
-  dates = datetime('2013-05-1'):datetime('2013-05-1');
+  dates = datetime('2013-05-1'):datetime('2013-07-19');
+  %dates = datetime('2013-05-1'):datetime('2013-05-3');
 else
   dates = datetime('2011-07-22'):datetime('2011-12-20');
 end

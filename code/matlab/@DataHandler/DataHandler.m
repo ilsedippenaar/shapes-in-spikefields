@@ -120,6 +120,7 @@ classdef DataHandler
     [out,times] = getDataSlices(obj, data, type, select_range, conditions, varargin)
     obj = clean(obj, varargin)
     dh_structs = split(obj, betweens)
+    tbl = toTrialTable(obj)
     function printSummary(obj, fd)
       if nargin == 1
         fd = 1;
