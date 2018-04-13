@@ -1,4 +1,8 @@
-function [inter_cohs, num_in_bins,binned_cohs, std_err] = calculateInterelecDistCoherence(cohs, dist_bins, electrode_mapping)
+function [inter_cohs, num_in_bins, binned_cohs, std_err] = calculateInterelecDistCoherence(cohs, dist_bins, electrode_mapping)
+n = size(cohs,1);
+num_elec = sum(~cellfun(@isempty, electrode_mapping(:,1)));
+cohs = cohs(~isnan(cohs(:)));
+cohs = reshape(cohs, n, num_elec, num_elec);
 s = size(cohs);
 n = s(end);
 inter_cohs = zeros([s(1:end-2),size(dist_bins,2)]);
