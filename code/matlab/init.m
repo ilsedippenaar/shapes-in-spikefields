@@ -1,26 +1,13 @@
-params = [];
-% Selecting
-params.names = {'shape', 'saccade'};
-params.length_postnoise_response = 260; % from Weiner and Ghose 2014
-params.length_min_reaction_time = 200; % from Weiner and Ghose 2014
-params.length_presaccade_response = 50; % this is just eyeball
-% Multitaper
-params.T = 0.5;
-params.W = 6;
-params.window_size = 0.064;
-params.Fs = 1000;
-% Plotting
-params.freq_cutoff = 100;
-
 name = 'jaws';
 trial_dir = fullfile(data_dir, 'trials', name);
 lfp_dir = fullfile(data_dir, 'lfps', name);
 dh_dir = fullfile(cache_dir, 'data_handlers', name);
 if strcmp(name, 'jaws')
-  dates = datetime('2013-05-1'):datetime('2013-07-19');
-  %dates = datetime('2013-05-1'):datetime('2013-05-3');
+  %dates = datetime('2013-05-1'):datetime('2013-07-19');
+  dates = datetime('2013-06-3'):datetime('2013-07-19');
 else
-  dates = datetime('2011-07-22'):datetime('2011-12-20');
+  %dates = datetime('2011-07-22'):datetime('2011-12-20');
+  dates = datetime('2011-11-7'):datetime('2011-12-20');
 end
 
 if exist('dhs', 'var') ~= 1

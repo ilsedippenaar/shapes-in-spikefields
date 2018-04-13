@@ -4,12 +4,12 @@ if nargin < 2
 end
 lfp = mean(lfps,2);
 
-invalid_idxs = find(conv(lfp==0, rectwin(num_zeros), 'same') >= num_zeros)'; % 3 consecutive 0's = island of zeros
+invalid_idxs = find(conv(lfp==0, ones(num_zeros,1), 'same') >= num_zeros)'; % 3 consecutive 0's = island of zeros
 zero_betweens = getValidIntervals(invalid_idxs, num_zeros, numel(lfp));
 
 lfp_limit = 2000;
 high_window_size = 1000;
-invalid_idxs = find(conv(abs(lfp) > lfp_limit, rectwin(high_window_size), 'same') >= 1)';
+invalid_idxs = find(conv(abs(lfp) > lfp_limit, ones(high_window_size,1), 'same') >= 1)';
 high_betweens = getValidIntervals(invalid_idxs, high_window_size, numel(lfp));
 
 % intersect zero_betweens and high_betweens

@@ -26,6 +26,7 @@ mt_params.tapers = [params.T*params.W, 2*params.T*params.W-1];
 mt_params.fpass = [0,params.freq_cutoff];
 mt_params.Fs = params.Fs;
 mt_params.trialave = true;
+
 %% Initialize
 grouped_dhs = groupDhs(dhs);
 electrode_mappings = cellfun(@(c) c(1).electrode_mapping, grouped_dhs, 'UniformOutput', false);

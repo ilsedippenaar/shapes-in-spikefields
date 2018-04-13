@@ -5,7 +5,7 @@ if numel(s) == 1
   s = [s,1];
 end
 out = zeros(s);
-args = combinations(varargin{:});
+args = cartesianProd(varargin{:});
 for i=1:prod(s)
   out(i) = f(args{i}{:});
 end

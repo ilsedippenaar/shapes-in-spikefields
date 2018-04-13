@@ -2,6 +2,8 @@ function trials_out = makeTrialRepresentation(obj, trial_struct, min_reaction_ti
 trials_out(obj.num_trials).sections = [];
 trials_out(obj.num_trials).saccade = [];
 trials_out(obj.num_trials).result = [];
+trials_out(obj.num_trials).shapeid = [];
+trials_out(obj.num_trials).shapecoh = [];
 for i=1:obj.num_trials
   tr = trial_struct(i);
   if i == 1
@@ -54,5 +56,21 @@ for i=1:obj.num_trials
     end
   end
   trials_out(i).result = result;
+  if isfield(tr.stim, 'shapeid') && ~isempty(tr.stim.shapeid)
+    if iscell(tr.stim.shapeid)
+      trials_out(i).shapeid = str2double(tr.stim.shapeid{1});
+    else
+      trials_out(i).shapeid = double(tr.stim.shapeid);
+    end
+  else
+    trials_out(i).shapeid = nan;
+  end
+  if isfield(tr.stim, 'shapecoh') && ~isempty(tr.stim.shapecoh)
+    % sometimes there are 2 shape cohs for some reason, so just pick the
+    % first one
+    trials_out(i).shapecoh = double(tr.stim.shapecoh(1));
+  else
+    trials_out(i).shapecoh = nan;
+  end
 end
 end

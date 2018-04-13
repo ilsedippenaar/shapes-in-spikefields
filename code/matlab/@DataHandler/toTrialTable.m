@@ -33,8 +33,10 @@ date = repelem({obj.date}, num_trials, 1);
 num = (1:num_trials)';
 monkey_name = repelem({obj.monkey_name}, num_trials, 1);
 electrode_mapping = repelem({obj.electrode_mapping},num_trials,1);
+shapeid = [trials.shapeid]';
+shapecoh = [trials.shapecoh]';
 result = {trials.result}';
-tbl = table(ids, date, num, monkey_name, lfps, spikes, electrode_mapping, sections{:}, result, ...
+tbl = table(ids, date, num, monkey_name, lfps, spikes, electrode_mapping, sections{:}, shapeid, shapecoh, result, ...
   'VariableNames', {'id','date','num','monkey_name', 'lfps', 'spikes','electrode_mapping', ...
-                    'start', 'fixate', 'noise', 'shape', 'saccade', 'stop', 'result'});
+                    'start', 'fixate', 'noise', 'shape', 'saccade', 'stop', 'shapeid', 'shapecoh', 'result'});
 end
