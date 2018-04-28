@@ -18,7 +18,7 @@ for i=1:numel(days)
     end
   else
     dh = DataHandler.fromDates(d, trial_dir, lfp_dir, dh_dir, varargin{:});
-    if isempty(dh)
+    if isempty(dh) || isempty(dh.lfps)
       continue
     end
     dhs = dh.split();

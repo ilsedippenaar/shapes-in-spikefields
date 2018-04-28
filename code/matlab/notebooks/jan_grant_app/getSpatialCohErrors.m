@@ -26,7 +26,7 @@ for freq_idx=1:size(cohs,1)
   x = [-d; d];
   y = repmat(reduced_cohs, 2, 1);
   % make sure a coefficient is 1 so that model(0)=1 (perfect coherence at distance = 0)
-  fitobj = fit(x, y, 'exp(-((x-b)/c)^2)', 'Start', [0, 1]); % mean = 0, std = 1
+  fitobj = fit(x, y, 'exp(-(x/c)^2)', 'Start', [0, 1]); % mean = 0, std = 1
   conf_ints = confint(fitobj);
   
   sigmas(freq_idx,1) = fitobj.c;
