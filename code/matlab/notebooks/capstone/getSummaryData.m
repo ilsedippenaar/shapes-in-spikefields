@@ -1,4 +1,4 @@
-function [events, lfp, spikes] = get_summary_data(dh, trial_num)
+function [events, lfp, spikes] = getSummaryData(dh, trial_num)
 trial = dh.trials(trial_num);
 times = [trial.sections{1}+3000, trial.sections{end}-4000];
 cond = [];

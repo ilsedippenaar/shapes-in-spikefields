@@ -1,7 +1,10 @@
-function [ppcs, freqs] = calculatePPC(lfps, spikes, electrode_mappings, trial_beg, Fs)
+function [ppcs, freqs] = calculatePPC(lfps, spikes, electrode_mappings, trial_beg, Fs, expand_trials)
 num_days = numel(lfps);
 if ~iscell(electrode_mappings)
   electrode_mappings = {electrode_mappings};
+end
+if nargin < 6
+  expand_trials = false;
 end
 
 spec_cfg = [];
@@ -38,8 +41,8 @@ for day=1:num_days
     stat_cfg.channel = lfp_labels(chans);
     stat_out = ft_spiketriggeredspectrum_stat(stat_cfg, spec_out);
     if isnan(stat_out.(method))
-      ppcs{day}{unit_num} = []; % sometimes it just returns a single day, so this prevents it from breaking
-      freqs{day}{unit_num} = [];
+      ppcs{day}{unit_num} = nan(numel(spec_out.freq),1); % sometimes it just returns a single day, so this prevents it from breaking
+      freqs{day}{unit_num} = nan(numel(spec_out.freq),1);
     else
       ppcs{day}{unit_num} = stat_out.(method)';
       freqs{day}{unit_num} = stat_out.freq';

@@ -3,11 +3,12 @@ trial_dir = fullfile(data_dir, 'trials', name);
 lfp_dir = fullfile(data_dir, 'lfps', name);
 dh_dir = fullfile(cache_dir, 'data_handlers', name);
 if strcmp(name, 'jaws')
+  dates = datetime('2013-05-1');
   %dates = datetime('2013-05-1'):datetime('2013-07-19');
-  dates = datetime('2013-06-3'):datetime('2013-07-19');
+  %dates = datetime('2013-06-3'):datetime('2013-07-19');
 else
-  %dates = datetime('2011-07-22'):datetime('2011-12-20');
-  dates = datetime('2011-11-7'):datetime('2011-12-20');
+  dates = datetime('2011-07-22'):datetime('2011-12-20');
+  %dates = datetime('2011-11-7'):datetime('2011-12-20');
 end
 
 if exist('dhs', 'var') ~= 1

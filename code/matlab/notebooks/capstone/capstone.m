@@ -256,8 +256,13 @@ saveToR(phases, [], [], data_dir, folder_name, sprintf('3_b_%s', monkey_name));
 % C - interelectrode distance coherences
 breaks = linspace(0, hypot(9,9)*400, 6);
 dist_bins = [breaks(1:end-1);breaks(2:end)];
+
+e_maps = arrayfun(@(dh) dh.electrode_mapping(:,1), dhs, 'UniformOutput',false);
+valid_elecs = ~cellfun(@isempty, cat(2, e_maps{:})); % 96 x num_days
+valid_elecs = any(valid_elecs,2);
 electrode_mapping = cell(96,2);
-electrode_mapping(:,1) = num2cell(1:96);
+electrode_mapping(valid_elecs,1) = num2cell(find(valid_elecs));
+
 % coherences are averaged across trials, so we can take a weighted average
 % over trials to get the coherence considered across all conditions
 n_success = sum(cellfun(@(d) size(d{1},2), lfps{1}));
