@@ -1,0 +1,507 @@
+---
+output: pdf_document
+---
+
+```{r, echo=F, warning=F, message=F}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+library(pracma)
+library(cowplot)
+library(latex2exp)
+library(R.matlab)
+library(zoo)
+library(viridis)
+
+folder_name <- 'day_by_day'
+should_save <- T
+source('config.R')
+source('plotting.R')
+```
+
+
+```{r, fig.cap="Figure 2: Data summary"}
+spike_train_lfp_trials <- function(times, spikes, lfp, vjust=0) {
+  s <- zeros(length(times), length(spikes))
+  for (i in 1:size(s,2)) {
+    s[spikes[[i]][[1]],i] <- 1
+  }
+  d <- data.frame(x=times, y=s, lfp=lfp) %>%
+    gather('unit', 'fired', -x, -lfp) 
+  l <- 1:size(s,2)
+  names(l) <- levels(as.factor(d$unit))
+  d$unit <- as.numeric(l[d$unit]) + vjust
+  d %>% 
+    ggplot(aes(x = x / 1000)) + 
+    geom_tile(aes(y = unit, fill = as.factor(fired)), height = 0.8) +
+    geom_line(aes(y = interp1(range(lfp), c(0,0.9*vjust), lfp)), size=0.5) +
+    expand_limits(y = 0) +
+    scale_fill_manual(values = c('white', 'black')) +
+    guides(fill = F) +
+    theme_classic() +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(), 
+          axis.ticks.y = element_blank()) +
+    labs(x = 'Time (s)')
+}
+
+trial <- load_mat('2_a_trial')$trial
+lfp <- load_mat('2_a_lfp')$y
+spikes <- load_mat('2_a_spikes')
+
+# this is necessary because ggplot has a bug
+plot_a <- spike_train_lfp_trials(spikes$x, spikes$y, lfp, vjust=10) + 
+  geom_vline(xintercept = c(1.880,2.614,2.831,3.040), color = c('red', 'green', 'blue', 'purple'))
+
+trial <- load_mat('2_b_trial')$trial
+lfp <- load_mat('2_b_lfp')$y
+spikes <- load_mat('2_b_spikes')
+
+plot_b <- spike_train_lfp_trials(spikes$x, spikes$y, lfp, vjust=10) + 
+  geom_vline(xintercept = c(0.658, 1.653, 1.693), color = c('red', 'green', 'blue'))
+
+jaws <- data.frame(rxn_time = load_mat('2_c_jaws')$rxn.time, name = 'J')
+zorin <- data.frame(rxn_time = load_mat('2_c_zorin')$rxn.time, name = 'Z')
+d <- rbind(jaws, zorin) %>% filter(!is.na(rxn_time),
+                                   rxn_time > 0)
+plot_c <- d %>%
+  ggplot(aes(x=rxn_time, col=name)) +
+  stat_density(geom='line', bw = 10, position = 'identity', size=1) +
+  expand_limits(x = max(d$rxn_time)*1.1) +
+  scale_color_manual(values = c('Z'=zorin_color, 'J'=jaws_color), name = NULL) +
+  xlim(200, 800) +
+  labs(x = "Reaction Time (ms)", y = "Density") +
+  theme(legend.position = c(0.98,0.98),
+        legend.justification = c('right', 'top'))
+
+plot_d <- std_dev_plot_from_mat_monkeys('2_d') +
+  xlim(0, 2500) + ylim(0.5, 1) +
+  labs(x = "Time after noise stimulus", y = "Success Rate") +
+  theme_cowplot() +
+  theme(legend.position = c(0.98,0.01),
+        legend.justification = c('right', 'bottom'))
+
+p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', label_x = c(0.05, 0.05, 0, 0))
+
+if (should_save) ggsave(file.path(plot_save_dir, folder_name, '2.pdf'), p) else print(p)
+```
+
+
+```{r, fig.cap="Figure 3: Frequencies"}
+plot_low_high_phase_hist <- function(name) {
+  n_bins <- 60
+  breaks <- seq(0, 360, length.out = n_bins+1)
+  phases <- lapply(load_mat(name, convert = F)$x, function(x) x[[1]])
+  phases <- lapply(phases, function(x) rad2deg(x) %% 360)
+  phases <- vapply(phases, function(x) table(cut(x, breaks = breaks)) / length(x), numeric(n_bins))
+  phases <- data.frame(phases)
+  colnames(phases) <- 1:4
+  freq_names <- rep(c("Low (7.5-25 Hz)", "High (31-100 Hz)"), each=2)
+  freq_names <- factor(freq_names, levels=freq_names[c(1,3)])
+  phases <- phases %>%
+    mutate(x = rollmean(seq(0, 360, length.out = n()+1), 2)) %>%
+    gather(num, y, -x) %>%
+    mutate(num = as.numeric(num),
+           success = ifelse(num %% 2 == 1, 'yes', 'no'),
+           f = freq_names[num]) %>%
+    select(-num) %>%
+    group_by(f) %>%
+    spread(success, y) %>%
+    mutate(rate = yes / (yes+no))
+  phase_means <- phases %>%
+    group_by(f) %>%
+    summarize(v = mean(rate*exp(1i*deg2rad(x)))) %>%
+    mutate(x = rad2deg(Arg(v)) %% 360,
+           xend = x,
+           y = 0,
+           yend = Mod(v))
+  phases %>%
+    ggplot(aes(x = x, y=rate)) +
+    geom_polygon(fill=NA, col='#0000FF') +
+    geom_segment(data = phase_means, aes(x=x, y=y, xend=xend, yend=yend), inherit.aes = F, size=0.5, col='darkgrey') +
+    coord_polar() +
+    facet_wrap(~ f) +
+    theme(panel.grid.major.y = element_line(size = 0.5, color = 'darkgrey'),
+          axis.ticks.y = element_blank(),
+          panel.spacing = unit(0.2, 'cm')) +
+    scale_x_continuous(name = NULL,  breaks=NULL) +
+    scale_y_continuous(name = NULL, labels = NULL)
+}
+
+plot_rxn_time_power_bin <- function(name, monkey_name) {
+  mat <- load_mat(name, convert = F)
+  pow_lab <- as.factor(mat$x)
+  freq_lab <- as.factor(c("Low (7.5-25 Hz)", "High (31-100 Hz)"))
+  levels(freq_lab) <- freq_lab
+  freqs <- lapply(mat$y, function(x) 
+    lapply(x[[1]], function(y) y[[1]]))
+  d <- data.frame(y = numeric(0), pow_lab = numeric(0), freq_lab = numeric(0))
+  for (i in 1:length(freqs)) {
+    for (j in 1:length(freqs[[i]])) {
+      e <- data.frame(y = freqs[[i]][[j]], pow_lab = pow_lab[j], freq_lab = freq_lab[i])
+      d <- rbind(d, e)
+    }
+  }
+  d %>% 
+    ggplot(aes(x=pow_lab, y=y)) +
+    geom_boxplot(aes(col=monkey_name)) +
+    scale_color_manual(values = c('Z'=zorin_color, 'J'=jaws_color)) +
+    guides(col = F) +
+    facet_wrap(~freq_lab) +
+    labs(y = "Reaction Time (ms)", x = "Power bin")
+}
+
+plot_a_zorin <- std_dev_plot_from_mat('3_a_zorin', 
+                      color = c('red', 'green', 'blue'), 
+                      legend_labels = c("Low", "Medium", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success Rate") +
+  theme(legend.text = element_text(size=8))
+plot_a_jaws <- std_dev_plot_from_mat('3_a_jaws', 
+                      color = c('red', 'green', 'blue'), 
+                      legend_labels = c("Low", "Medium", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success Rate") +
+  theme(legend.text = element_text(size=8))
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow=1)
+
+plot_b_zorin <- plot_low_high_phase_hist('3_b_zorin')
+plot_b_jaws <- plot_low_high_phase_hist('3_b_jaws')
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow=1)
+
+
+plot_c_zorin <- plot_rxn_time_power_bin('3_c_zorin', 'Z')
+plot_c_jaws <- plot_rxn_time_power_bin('3_c_jaws', 'J')
+plot_c <- plot_grid(plot_c_zorin, plot_c_jaws, nrow=1)
+
+p <- plot_grid(plot_a, plot_b, plot_c, labels="AUTO", ncol=1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '3.pdf'), p, 
+                        height = 10, width = 10, units = 'in') 
+} else print(p)
+```
+
+```{r, fig.cap="Figure 4: Coherence"}
+plot_binned_coh <- function(name) {
+  d <- load_mat(name)
+  dist_edges <- d[['dist.edges']]
+  legend_labels <- c()
+  for (i in 1:(length(dist_edges)-1)) {
+    legend_labels[i] <- TeX(sprintf('%.0f - %.0f $\\mu m$', dist_edges[i], dist_edges[i+1]))
+  }
+  idxs <- d$x < 100
+  x <- d$x[idxs]
+  y <- d$y[idxs,]
+  std_err <- d$std.err[idxs,]
+  
+  std_dev_plot(x, y, std_err, legend_labels = legend_labels) +
+    xlab('Frequency (Hz)') + ylab('Coherence') + 
+    theme(legend.text = element_text(size=12), 
+          legend.position = c(0.98,0.98),
+          legend.justification = c('right', 'top'),
+          legend.key.size = unit(0.1, units = 'in'))
+}
+
+
+plot_a_zorin <- plot_binned_coh('4_a_zorin')
+plot_a_jaws <- plot_binned_coh('4_a_jaws')
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_c_zorin <- std_dev_plot_from_mat('4_c_zorin', 
+                      color = c('red', 'green', 'blue'), 
+                      legend_labels = c("Low", "Medium", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success Rate") +
+  theme(legend.position = c(0.01,1),
+        legend.justification = c('left', 'top'))
+plot_c_jaws <- std_dev_plot_from_mat('4_c_jaws', 
+                      color = c('red', 'green', 'blue'), 
+                      legend_labels = c("Low", "Medium", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success Rate") +
+  theme(legend.position = c(0.01,1),
+        legend.justification = c('left', 'top'))
+plot_c <- plot_grid(plot_c_zorin, plot_c_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_c, labels="AUTO", ncol=1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '4.pdf'), p, 
+                        height = 8, width = 12, units = 'in') 
+} else print(p)
+```
+
+```{r, fig.cap="Figure 5: Spike density"}
+plot_a_zorin <- std_dev_plot_from_mat('5_a_zorin') +
+  labs(x = "Time (ms)", y="Spike denisty")
+plot_a_jaws <- std_dev_plot_from_mat('5_a_jaws') +
+  labs(x = "Time (ms)", y="Spike denisty")
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_b_zorin <- std_dev_plot_from_mat('5_b_zorin') +
+  labs(x = "Time (ms)", y="Spike density")
+plot_b_jaws <- std_dev_plot_from_mat('5_b_jaws') +
+  labs(x = "Time (ms)", y="Spike density")
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_b, labels="AUTO", ncol=1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '5.pdf'), p, 
+                        height = 8, width = 12, units = 'in') 
+} else print(p)
+```
+
+```{r, fig.cap="Figure 6: Phase locking"}
+plot_a_zorin <- std_dev_plot_from_mat('6_a_zorin',
+                                      color=c("seagreen4", "red"),
+                                      legend_labels = c("Success", "Failure")) +
+  labs(x = "Frequency (Hz)", y = "PPC") +
+  theme(legend.text = element_text(size=10))
+plot_a_jaws <- std_dev_plot_from_mat('6_a_jaws',
+                                      color=c("seagreen4", "red"),
+                                     legend_labels = c("Success", "Failure")) +
+  labs(x = "Frequency (Hz)", y = "PPC") +
+  theme(legend.text = element_text(size=10))
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_b_zorin <- std_dev_plot_from_mat('6_b_zorin', 
+                      color = c('red', 'green', 'blue'), 
+                      legend_labels = c("Low", "Medium", "High")) +
+  labs(x = "Frequency", y = "Success rate") +
+  theme(legend.text = element_text(size=10))
+plot_b_jaws <- std_dev_plot_from_mat('6_b_jaws', 
+                      color = c('red', 'green', 'blue'), 
+                      legend_labels = c("Low", "Medium", "High")) +
+  labs(x = "Frequency", y = "Success rate") +
+  theme(legend.text = element_text(size=10))
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_b, labels="AUTO", ncol=1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '6.pdf'), p, 
+                        height = 8, width = 12, units = 'in') 
+} else print(p)
+```
+
+
+```{r, fig.cap="Figure 7: Learning"}
+plot_success_rate <- function(name, col) {
+  d <- load_mat(name)
+  data.frame(x=d$x, y=d$y) %>%
+    ggplot(aes(x,y)) +
+    geom_line(col = col, size=2) +
+    labs(x = "Trial Index", y = "Success Rate")
+}
+
+plot_trial_heatmap <- function(name) {
+  plot_heatmap(name, convert = T) + 
+    scale_fill_gradientn(colors = matlab::jet.colors(1000), name = NULL) +
+    theme(legend.position = 'bottom',
+          legend.key.width = unit(0.5, 'in')) +
+    labs(x = "Trial Index", y = "Frequency (Hz)")
+}
+
+plot_a_zorin <- plot_success_rate('7_a_zorin', zorin_color)
+plot_a_jaws <- plot_success_rate('7_a_jaws', jaws_color)
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_b_zorin <- plot_trial_heatmap('7_b_zorin')
+plot_b_jaws <- plot_trial_heatmap('7_b_jaws')
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow = 1)
+
+plot_c_zorin <- plot_trial_heatmap('7_c_zorin')
+plot_c_jaws <- plot_trial_heatmap('7_c_jaws')
+plot_c <- plot_grid(plot_c_zorin, plot_c_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_b, plot_c, labels="AUTO", ncol = 1, rel_heights = c(1, 1.5, 1.5))
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '7.png'), p, 
+                        height = 10, width = 10, units = 'in') 
+} else print(p)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, fig.cap="Reaction times versus (normalized) preshape LFP power"}
+make_rxn_time_pow_bin_df <- function(name) {
+  mat <- load_mat(paste0('rxn_time_pow_bin_', name), convert = F)
+  pow_lab <- as.factor(mat$x)
+  freq_lab <- as.factor(c("Low (7.5-25 Hz)", "High Frequency (31-100 Hz)"))
+  levels(freq_lab) <- freq_lab
+  freqs <- lapply(mat$y, function(x) 
+                            lapply(x[[1]], function(y) y[[1]]))
+  d <- data.frame(y = numeric(0), pow_lab = numeric(0), freq_lab = numeric(0))
+  for (i in 1:length(freqs)) {
+    for (j in 1:length(freqs[[i]])) {
+      e <- data.frame(y = freqs[[i]][[j]], pow_lab = pow_lab[j], freq_lab = freq_lab[i])
+      d <- rbind(d, e)
+    }
+  }
+  return(d)
+}
+zorin <- make_rxn_time_pow_bin_df('zorin') %>%
+  mutate(name = 'Z')
+jaws <- make_rxn_time_pow_bin_df('jaws') %>%
+  mutate(name = 'J')
+rbind(zorin, jaws) %>%
+  ggplot(aes(x=pow_lab, y=y)) +
+  geom_boxplot(aes(col=name)) +
+  scale_color_manual(values = c('Z'=zorin_color, 'J'=jaws_color)) +
+  guides(col = F) +
+  facet_grid(name~freq_lab) +
+  labs(y = "Reaction Time (ms)", x = "Power bin")
+```
+
+```{r, fig.cap="Coherence at 20 Hz Across Trials"}
+make_trial_coh_df <- function(name, analysis_type) {
+  mat <- load_mat(sprintf('trial_coh_%s_%s', analysis_type, name))
+  data.frame(x = mat$x, y = mat$y, std_err = mat$std.err, name=name, type=analysis_type)
+}
+x_lab <- "Trial Index"
+y_lab <- "Coherence"
+plot_a <- std_dev_plot_from_mat('trial_coh_20_noise_jaws') +
+  labs(x = x_lab, y = y_lab, title = "Postnoise Jaws")
+
+plot_b <- std_dev_plot_from_mat('trial_coh_20_shape_jaws') +
+  labs(x = x_lab, y = y_lab, title = "Preshape Jaws")
+
+plot_c <- std_dev_plot_from_mat('trial_coh_20_noise_zorin') +
+  labs(x = x_lab, y = y_lab, title = "Postnoise Zorin")
+
+plot_d <- std_dev_plot_from_mat('trial_coh_20_shape_zorin') +
+  labs(x = x_lab, y = y_lab, title = "Preshape Zorin")
+
+p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', nrow=2)
+
+if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'trial_coh_20.png'), p, width = 4, units = 'in') else print(p)
+```
+
+```{r, fig.cap="Success rate with far coherence at 20 Hz by trial"}
+make_success_rate_trial_df <- function(name) {
+  mat <- load_mat(sprintf('success_rate_trial_noise_%s', name))
+  data.frame(x = mat$x, y = mat$y, name=as.character(c('jaws'='J', 'zorin'='Z')[name]))
+}
+
+plot_success_rate <- function(name) {
+  d <- make_success_rate_trial_df(name)
+  std_dev_plot(as.matrix(d$x), as.matrix(d$y), as.matrix(rep(0,nrow(d))))
+}
+
+plot_a <- plot_success_rate('zorin') + 
+  labs(x = "Trial Index", y = "Sucess rate", title = "Zorin")
+plot_b <- plot_success_rate('jaws') + 
+  labs(x = "Trial Index", y = "Sucess rate", title = "Jaws")
+plot_c <- std_dev_plot_from_mat('trial_coh_20_noise_zorin') +
+  labs(x = "Trial Index", y = "Coherence")
+plot_d <- std_dev_plot_from_mat('trial_coh_20_noise_jaws') +
+  labs(x = "Trial Index", y = "Coherence")
+
+p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', nrow=2)
+
+if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'trial_coh_with_success_rate.png'), p, width = 8, units = 'in') else print(p)
+```
+
+```{r, fig.cap="Success rate with far coherence by trial"}
+plot_a <- plot_heatmap('trial_coh_noise_jaws', convert = T) +
+  labs(x = "Trial Index", title = "Postnoise Jaws") + guides(fill=F)
+plot_b <- plot_heatmap('trial_coh_shape_jaws', convert = T) +
+  labs(x = "Trial Index", title = "Preshape Jaws") + guides(fill=F)
+plot_c <- plot_heatmap('trial_coh_noise_zorin', convert = T) +
+  labs(x = "Trial Index", title = "Postnoise Zorin") + guides(fill=F)
+plot_d <- plot_heatmap('trial_coh_shape_zorin', convert = T) +
+  labs(x = "Trial Index", title = "Preshape Zorin") + guides(fill=F)
+
+p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', nrow=2)
+
+if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'trial_coh.png'), p, width = 8, units = 'in') else print(p)
+```
+
+```{r, fig.cap="Hacking around to see if certain frequencies are more correlated with success rate"}
+d <- load_mat('trial_coh_shape_jaws')
+y <- t(d$y)
+s <- load_mat('success_rate_trial_shape_jaws')$y
+cors <- apply(y, 2, function(x) cor.test(x,s)$estimate)
+f <- d$freqs
+idxs <- f < 100
+plot(f[idxs], cors[idxs], type='l')
+plot(s, y[,13], pch=20)
+```
+
+
+```{r, fig.cap="Success rate with far coherence at 20 Hz by day"}
+make_success_rate_day_df <- function(name) {
+  mat <- load_mat(sprintf('success_rate_day_noise_%s', name))
+  data.frame(x = mat$x, y = mat$y, name=as.character(c('jaws'='J', 'zorin'='Z')[name]))
+}
+
+plot_success_rate <- function(name) {
+  d <- make_success_rate_day_df(name)
+  std_dev_plot(as.matrix(d$x), as.matrix(d$y), as.matrix(rep(0,nrow(d))))
+}
+
+plot_a <- plot_success_rate('zorin') + 
+  labs(x = "Day", y = "Sucess rate", title = "Zorin")
+plot_b <- plot_success_rate('jaws') + 
+  labs(x = "Day", y = "Sucess rate", title = "Jaws")
+plot_c <- std_dev_plot_from_mat('far_coh_20_day_noise_zorin') +
+  labs(x = "Day", y = "Coherence")
+plot_d <- std_dev_plot_from_mat('far_coh_20_day_noise_jaws') +
+  labs(x = "Day", y = "Coherence")
+
+p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', nrow=2)
+
+if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'day_coh_with_success_rate.png'), p, width = 8, units = 'in') else print(p)
+```
+
+
+# Scratch work
+```{r}
+t <- seq(0,1/4,length.out = 1000)
+p <- data.frame(t = t, x = sin(2*pi*63*t)) %>%
+  ggplot(aes(x=t, y=x)) +
+  geom_line(col = "blue", size = 2) +
+  theme_void()
+ggsave(file.path(plot_save_dir, 'gamma.png'), p, height = 3, units = 'in')
+```
+
+```{r}
+p <- data.frame(x=d$x, y=d$y) %>%
+  filter(x < 10000, x>5000) %>%
+  ggplot(aes(x,y)) + 
+  geom_line(col = 'black', size=0.5) +
+  theme_void()
+ggsave(file.path(plot_save_dir, 'lfp.png'), p, width = 10, height = 2, units = 'in')
+```
+
+```{r}
+d <- load_mat('success_rate_jaws')
+p1 <- data.frame(x=d$x, y=d$y) %>%
+  ggplot(aes(x,y)) +
+  geom_line(col = "blue", size=2) +
+  labs(x = "Trial Index (number of trials after initial training)", y = "Success Rate")
+p2 <- plot_heatmap('delta_success_high_pow_trials', convert = T) + 
+  scale_fill_gradientn(colors = matlab::jet.colors(1000), name = "Change in\nsuccess\nrate") +
+  labs(x = "Trial Index", y = "Frequency (Hz)")
+
+ggsave(file.path(plot_save_dir, 'success_rate.png'), p1, width = 6, height = 3)
+ggsave(file.path(plot_save_dir, 'delta_success_high_pow_trials.png'), p2, width = 7, height = 4)
+
+ggsave(file.path(plot_save_dir, 'lfp_pow_success.png'), plot_a, width = 6, height = 4)
+```
+

@@ -14,81 +14,10 @@ library(R.matlab)
 library(zoo)
 library(viridis)
 
-source('config.R')
-```
-
-```{r, echo=F}
 folder_name <- 'capstone'
-should_save <- F
-jaws_color <- 'orange'
-zorin_color <- 'purple'
-
-load_mat <- function(name, folder_name='capstone', convert=T) {
-  d <- readMat(file.path(data_dir, folder_name, paste(name, '.mat', sep = '')))
-  if (convert)  d[['x']] <- as.matrix(as.numeric(d[['x']])) # make x a column vector
-  d
-}
-
-std_dev_plot_from_mat <- function(name, ...) {
-  d <- load_mat(name)
-  x <-  d[['x']]
-  y <- d[['y']]
-  std_err <- d[['std.err']]
-  std_dev_plot(x, y, std_err, ...)
-}
-
-std_dev_plot_from_mat_monkeys <- function(name, ...) {
-  jaws <- load_mat(paste0(name, '_jaws'))
-  zorin <- load_mat(paste0(name, '_zorin'))
-  x <-  cbind(jaws$x, zorin$x)
-  y <- cbind(jaws$y, zorin$y)
-  std_err <- cbind(jaws$std.err, zorin$std.err)
-  std_dev_plot_monkeys(x, y, std_err, ...)
-}
-
-std_dev_plot <- function(x, y, std_err, color = 'blue', legend_labels=NULL) {
-  n <- dim(y)[2]
-  if (n > 1 & length(color) != n) {
-      colors <- matlab::fliplr(matlab::jet.colors(n))
-  } else {
-    colors <- color
-  }
-  means <- data.frame(x=x, y=y)
-  colnames(means) <- c('x', 1:n)
-  stds <- data.frame(x=x, std_err=std_err)
-  colnames(stds) <- c('x', 1:n)
-  p <- means %>% 
-    gather('name', y, -x) %>%
-    left_join(stds %>% gather('name', std_err, -x), by = c('x', 'name')) %>%
-    ggplot(aes(x = x)) +
-    geom_line(aes(y = y, col = name), size=1) +
-    geom_ribbon(aes(ymin = y-std_err, ymax = y+std_err, fill = name), alpha=0.2) +
-    scale_color_manual(labels=legend_labels, name = NULL, values = colors) +
-    scale_fill_manual(values = colors) +
-    guides(fill=F) +
-    theme_classic() +
-    theme(text = element_text(size=16))
-  if (is.null(legend_labels)) p <- p + guides(color = F)
-  p
-}
-
-std_dev_plot_monkeys <- function(x, y, std_err, colors = c(jaws_color, zorin_color)) {
-  n <- dim(x)[1]
-  assertthat::are_equal(dim(x)[2], 2)
-  assertthat::are_equal(dim(y)[2], 2)
-  assertthat::are_equal(dim(std_err)[2], 2)
-  jaws <- data.frame(x=x[,1], y=y[,1], std_err=std_err[,1], name="J")
-  zorin <- data.frame(x=x[,2], y=y[,2], std_err=std_err[,2], name="Z")
-  rbind(jaws, zorin) %>%
-    ggplot(aes(x=x)) +
-    geom_line(aes(y = y, col = name), size=1) +
-    geom_ribbon(aes(ymin = y-std_err, ymax = y+std_err, fill = name), alpha=0.2) +
-    scale_color_manual(name = NULL, values = colors) +
-    scale_fill_manual(values = colors) +
-    guides(fill=F) +
-    theme_classic() +
-    theme(text = element_text(size=16))
-}
+should_save <- T
+source('config.R')
+source('plotting.R')
 ```
 
 
@@ -170,7 +99,7 @@ A) Successful trial. Red = fixation, green = noise onset, blue = shape onset, pu
 Figure 2 should probably be some information analysis plots. 
 
 ```{r, fig.cap="Figure 3: Relevant LFP frequencies.", echo=F}
-plot_a <- std_dev_plot_from_mat('3_a_jaws', 
+plot_a <- std_dev_plot_from_mat('3_a_zorin', 
                       color = c('red', 'green', 'blue'), 
                       legend_labels = c("Low", "Medium", "High")) +
   labs(x = "Frequency (Hz)", y = "Success Rate") +
@@ -205,7 +134,7 @@ plot_b <- phases %>%
   scale_y_continuous(name = NULL, labels = NULL)
 
 
-d <- load_mat('3_c_jaws')
+d <- load_mat('3_c_zorin')
 dist_bins <- d[['dist.bins']]
 legend_labels <- c()
 for (i in 1:dim(dist_bins)[2]) {
@@ -219,7 +148,7 @@ plot_c <- std_dev_plot(d$x, d$y, d$std.err, legend_labels = legend_labels) +
         legend.justification = c('right', 'top'),
         legend.key.size = unit(0.1, units = 'in'))
 
-plot_d <- std_dev_plot_from_mat('3_d_jaws', legend_labels=c("Success", "Failure")) +
+plot_d <- std_dev_plot_from_mat('3_d_zorin', legend_labels=c("Success", "Failure")) +
   labs(x = "Frequency (Hz)", y = TeX("$\\sigma$ Coherence")) +
   theme(legend.position = c(0.98,0.98),
         legend.justification = c('right', 'top'))
@@ -227,7 +156,7 @@ plot_d <- std_dev_plot_from_mat('3_d_jaws', legend_labels=c("Success", "Failure"
 p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels="AUTO", label_size = 20)
 
 if (should_save) {
-  ggsave(file.path(plot_save_dir, folder_name, '3.png'), p, 
+  ggsave(file.path(plot_save_dir, folder_name, '3_zorin.png'), p, 
                         height = 10, width = 10, units = 'in') 
 } else print(p)
 ```
@@ -255,7 +184,7 @@ Rows: High alpha power trials (top), high gamma power trials (bottom)
 
 ```{r, fig.cap="Figure 5: Phase locking.", echo=F}
 plot_ppc <- function(letter) {
-  std_dev_plot_from_mat(sprintf('5_%s_jaws', letter)) +
+  std_dev_plot_from_mat(sprintf('5_%s_zorin', letter)) +
     labs(x="Frequency (Hz)", y = "PPC") +
     theme(text = element_text(size=12))
 }
@@ -267,28 +196,13 @@ plot_d <- plot_ppc('d') # failure, gamma
 
 p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', ncol = 2)
 
-if (should_save) ggsave(file.path(plot_save_dir, folder_name, '5.png'), p) else print(p)
+if (should_save) ggsave(file.path(plot_save_dir, folder_name, '5_zorin.png'), p) else print(p)
 ```
 Average pairwise phase consistency averaged over all recorded neurons and trials fitting the given condition:
 Columns: Success (left), failure (right)
 Rows: High alpha power trials (top), high gamma power trials (bottom)
 
 ```{r, fig.cap="Figure 6: Learning.", echo=F}
-plot_heatmap <- function(name, freq_cutoff=100) {
-  d <- load_mat(name, convert = F)
-  days <- as.Date(unlist(lapply(d$x, function(x) x[[1]])))
-  freqs <- d$freqs
-  vals <- d$y
-  expand.grid(f=freqs, trial=1:length(days)) %>%
-    mutate(z = as.numeric(vals),
-           z = ifelse(is.infinite(z), NaN, z)) %>%
-    filter(f <= freq_cutoff) %>%
-    ggplot(aes(trial, f)) +
-    geom_raster(aes(fill=z)) +
-    scale_fill_gradientn(colors = inferno(1000), name = NULL) +
-    labs(x = "Day number", y = "Frequency")
-}
-
 d <- load_mat('6_a_jaws', convert = F)
 days <- as.Date(unlist(lapply(d$x, function(x) x[[1]])))
 rate <- d$y
@@ -298,9 +212,9 @@ plot_a <- data.frame(y=rate) %>%
   geom_line() +
   labs(x = "Trial number", y = "Success Rate")
 
-plot_b <- plot_heatmap('6_b_jaws')
-plot_c <- plot_heatmap('6_c_jaws')
-plot_d <- plot_heatmap('6_d_jaws')
+plot_b <- plot_heatmap('6_b_jaws') + guides(fill=F)
+plot_c <- plot_heatmap('6_c_jaws') + guides(fill=F)
+plot_d <- plot_heatmap('6_d_jaws') + guides(fill=F)
 
 p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO')
 
@@ -309,178 +223,3 @@ if (should_save) ggsave(file.path(plot_save_dir, folder_name, '6.png'), p) else 
 A) Success rate vs trial number. B) Spatial distribution of coherence (the $\sigma$ from figure 3D) for each day. C) PPC (averaged over all neurons and all trials). D) Standard deviation of PPC among neurons in all trials in a given day.
 
 Maybe some neurons learn by increasing their deviation from the alpha rhythm, but there aren't a lot of units later, so it's difficult to say anything definitively with either of (C) or (D).
-
-```{r}
-plot_a <- plot_heatmap('coh_noise_day_jaws') +
-  ggtitle('Postnoise, Jaws')
-plot_b <- plot_heatmap('coh_noise_day_zorin') +
-  ggtitle('Postnoise, Zorin')
-plot_c <- plot_heatmap('coh_shape_day_jaws') +
-  ggtitle('Preshape, Jaws')
-plot_d <- plot_heatmap('coh_shape_day_zorin') +
-  ggtitle('Preshape, Zorin')
-
-p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO')
-
-if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'spatial_coh.png'), p) else print(p)
-```
-
-```{r, fig.cap="Far coherences at 15 Hz versus time"}
-d <- load_mat('far_coh_shape_day_zorin', convert = F)
-plot_a <- std_dev_plot(1:length(d$x), t(d$y), t(d$std.err)) + 
-  labs(x = "Day number", y = "Coherence") + 
-  ggtitle("~4-5 mm, 15 Hz, Zorin")
-
-d <- load_mat('far_coh_shape_day_jaws', convert = F)
-plot_b <- std_dev_plot(1:length(d$x), t(d$y), t(d$std.err)) + 
-  labs(x = "Day number", y = "Coherence") + 
-  ggtitle("~4-5 mm, 15 Hz, Jaws")
-
-p <- plot_grid(plot_a, plot_b, labels='AUTO')
-
-if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'far_spatial_coh_15.png'), p, width = 10, units = 'in') else print(p)
-```
-
-
-```{r, fig.cap="Success rate by phase split by low / high frequency"}
-plot_low_high_phase_hist <- function(name) {
-  n_bins <- 60
-  breaks <- seq(0, 360, length.out = n_bins+1)
-  phases <- lapply(load_mat(name, convert = F)$x, function(x) x[[1]])
-  phases <- lapply(phases, function(x) rad2deg(x) %% 360)
-  phases <- vapply(phases, function(x) table(cut(x, breaks = breaks)) / length(x), numeric(n_bins))
-  phases <- data.frame(phases)
-  colnames(phases) <- 1:4
-  freq_names <- rep(c("Low (7.5-25 Hz)", "High (31-100 Hz)"), each=2)
-  freq_names <- factor(freq_names, levels=freq_names[c(1,3)])
-  phases <- phases %>%
-    mutate(x = rollmean(seq(0, 360, length.out = n()+1), 2)) %>%
-    gather(num, y, -x) %>%
-    mutate(num = as.numeric(num),
-           success = ifelse(num %% 2 == 1, 'yes', 'no'),
-           f = freq_names[num]) %>%
-    select(-num) %>%
-    group_by(f) %>%
-    spread(success, y) %>%
-    mutate(rate = yes / (yes+no))
-  phase_means <- phases %>%
-    group_by(f) %>%
-    summarize(v = mean(rate*exp(1i*deg2rad(x)))) %>%
-    mutate(x = rad2deg(Arg(v)) %% 360,
-           xend = x,
-           y = 0,
-           yend = Mod(v))
-  phases %>%
-    ggplot(aes(x = x, y=rate)) +
-    geom_polygon(fill=NA, col='#0000FF') +
-    geom_segment(data = phase_means, aes(x=x, y=y, xend=xend, yend=yend), inherit.aes = F, size=0.5, col='darkgrey') +
-    coord_polar() +
-    facet_wrap(~ f) +
-    theme(panel.grid.major.y = element_line(size = 0.5, color = 'darkgrey'),
-          axis.ticks.y = element_blank(),
-          panel.spacing = unit(0.2, 'cm')) +
-    scale_x_continuous(name = NULL,  breaks=NULL) +
-    scale_y_continuous(name = NULL, labels = NULL)
-}
-
-plot_a <- plot_low_high_phase_hist('bigger_bins_phases_zorin') +
-  ggtitle("Jaws")
-plot_b <- plot_low_high_phase_hist('bigger_bins_phases_jaws') +
-  ggtitle("Zorin")
-
-p <- plot_grid(plot_a, plot_b, labels='AUTO', nrow=2)
-
-if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'low_high_phase_hist.png'), p, width = 3, units = 'in') else print(p)
-```
-
-```{r, fig.cap="Reaction times versus (normalized) preshape LFP power"}
-make_rxn_time_pow_bin_df <- function(name) {
-  mat <- load_mat(paste0('rxn_time_pow_bin_', name), convert = F)
-  pow_lab <- as.factor(mat$x)
-  freq_lab <- as.factor(c("Low (7.5-25 Hz)", "High Frequency (31-100 Hz)"))
-  levels(freq_lab) <- freq_lab
-  freqs <- lapply(mat$y, function(x) 
-                            lapply(x[[1]], function(y) y[[1]]))
-  d <- data.frame(y = numeric(0), pow_lab = numeric(0), freq_lab = numeric(0))
-  for (i in 1:length(freqs)) {
-    for (j in 1:length(freqs[[i]])) {
-      e <- data.frame(y = freqs[[i]][[j]], pow_lab = pow_lab[j], freq_lab = freq_lab[i])
-      d <- rbind(d, e)
-    }
-  }
-  return(d)
-}
-zorin <- make_rxn_time_pow_bin_df('zorin') %>%
-  mutate(name = 'Z')
-jaws <- make_rxn_time_pow_bin_df('jaws') %>%
-  mutate(name = 'J')
-rbind(zorin, jaws) %>%
-  ggplot(aes(x=pow_lab, y=y)) +
-  geom_boxplot(aes(col=name)) +
-  scale_color_manual(values = c('Z'=zorin_color, 'J'=jaws_color)) +
-  guides(col = F) +
-  facet_grid(name~freq_lab) +
-  labs(y = "Reaction Time (ms)", x = "Power bin")
-```
-
-```{r, fig.cap="Coherence at 20 Hz Across Trials"}
-make_trial_coh_df <- function(name, analysis_type) {
-  mat <- load_mat(sprintf('trial_coh_%s_%s', analysis_type, name))
-  data.frame(x = mat$x, y = mat$y, std_err = mat$std.err, name=name, type=analysis_type)
-}
-x_lab <- "Trial Index"
-y_lab <- "Coherence"
-plot_a <- std_dev_plot_from_mat('trial_coh_noise_jaws') +
-  labs(x = x_lab, y = y_lab, title = "Postnoise Jaws")
-
-plot_b <- std_dev_plot_from_mat('trial_coh_shape_jaws') +
-  labs(x = x_lab, y = y_lab, title = "Preshape Jaws")
-
-plot_c <- std_dev_plot_from_mat('trial_coh_noise_zorin') +
-  labs(x = x_lab, y = y_lab, title = "Postnoise Zorin")
-
-plot_d <- std_dev_plot_from_mat('trial_coh_shape_zorin') +
-  labs(x = x_lab, y = y_lab, title = "Preshape Zorin")
-
-d_a <- make_trial_coh_df('jaws', 'noise')
-d_b <- make_trial_coh_df('jaws', 'shape')
-d_c <- make_trial_coh_df('zorin', 'noise')
-d_d <- make_trial_coh_df('zorin', 'shape')
-rbind(d_a, d_b, d_c, d_d) %>%
-  ggplot(aes(x=x, y=y)) +
-  geom_line(col = 'blue') +
-  geom_ribbon(aes(ymin = y-std_err, ymax = y+std_err), alpha=0.2, fill='blue') +
-  guides(fill=F) +
-  facet_grid(name ~ type)
-  
-
-p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', nrow=2)
-
-if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'trial_coh_shape.png'), p, width = 4, units = 'in') else print(p)
-```
-
-```{r, fig.cap="Success rate"}
-make_success_rate_df <- function(name) {
-  mat <- load_mat(sprintf('success_rate_coh_noise_%s', name))
-  data.frame(x = mat$x, y = mat$y, name=as.character(c('jaws'='J', 'zorin'='Z')[name]))
-}
-
-plot_success_rate <- function(name) {
-  d <- make_success_rate_df(name)
-  std_dev_plot(as.matrix(d$x), as.matrix(d$y), as.matrix(rep(0,nrow(d))))
-}
-
-plot_a <- plot_success_rate('zorin') + 
-  labs(x = "Trial Index", y = "Sucess rate", title = "Zorin")
-plot_b <- plot_success_rate('jaws') + 
-  labs(x = "Trial Index", y = "Sucess rate", title = "Jaws")
-plot_c <- std_dev_plot_from_mat('trial_coh_noise_zorin') +
-  labs(x = "Trial Index", y = "Coherence")
-plot_d <- std_dev_plot_from_mat('trial_coh_noise_jaws') +
-  labs(x = "Trial Index", y = "Coherence")
-
-p <- plot_grid(plot_a, plot_b, plot_c, plot_d, labels='AUTO', nrow=2)
-
-if (should_save) ggsave(file.path(plot_save_dir, folder_name, 'trial_coh_shape.png'), p, width = 4, units = 'in') else print(p)
-```
-
