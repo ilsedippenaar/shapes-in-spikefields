@@ -198,6 +198,26 @@ clear all_tbl
 [x,y,std_err] = getFreqSuccess(tbl, 'pow_labs', analysis_idxs, freq_cutoff, params.Fs);
 saveToR(x, y, std_err, data_dir, folder_name, sprintf('3_a_%s', monkey_name));
 
+% TODO: bootstrap all of the confidence intervals
+% idxs = getFourierFreqs(analysis_idxs, params.Fs) < freq_cutoff;
+% ci = bootci(round(size(tbl,1)), ...
+%   {@getFreqSuccessBootstrap, tbl.success, tbl.pow_labs(:,idxs)}, ...
+%   'Options', statset('UseParallel', true), 'type', 'per');
+% plot(x,y)
+% hold on
+% plot(x, squeeze(ci(:,3,:)),'r--')
+% 
+% x = tbl.psd(tbl.success,26);
+% y = tbl.psd(~tbl.success,26);
+% x = x(randi(numel(x), 1, numel(y)));
+% signrank(x, y)
+
+% calculate chi-squared test statistic
+p = zeros(1,11);
+for i=1:11
+  [~,~,p(i)] = crosstab(tbl.success, tbl.pl_labs(:,i));
+end
+
 % B - Phases in bins of interest (low / high)
 % TODO: calculate PLV or other phase-locking measure here
 grouped_phases = cell(2, size(all_ranges,1));
@@ -266,8 +286,9 @@ f_ppcs = f_ppcs(cellfun(@numel, f_ppcs) == numel(x));
 f_ppcs = [f_ppcs{:}];
 [f_y,f_std_err] = calcMeanAndStd(f_ppcs,2,true);
 
-
 saveToR(x, [s_y,f_y], [s_std_err,f_std_err], data_dir, folder_name, sprintf('6_a_%s', monkey_name));
+
+apply(@(i) ranksum(s_ppcs(i,:),f_ppcs(i,:)), 1:11, 1, 1)
 
 % B - Success vs phase locking bin
 [x,y,std_err] = getFreqSuccess(tbl, 'pl_labs', 1:100, freq_cutoff, params.Fs);
