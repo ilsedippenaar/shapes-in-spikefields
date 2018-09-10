@@ -139,7 +139,7 @@ classdef DataHandler
   methods (Static)
     function data_handler = fromFile(trial_struct_filename, lfp_filename, varargin)
       p = inputParser;
-      p.addParameter('monkey_name', [], @(x) any(strcmp(x, {'zorin', 'jaws'})));
+      p.addParameter('monkey_name', 'zorin', @(x) any(strcmp(x, {'zorin', 'jaws'})));
       p.KeepUnmatched = true;
       p.parse(varargin{:});
       % combine unmatched and results

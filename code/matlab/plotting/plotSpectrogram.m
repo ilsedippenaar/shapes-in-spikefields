@@ -13,7 +13,7 @@ end
 
 times = linspace(t(1),t(end),10);
 time_ticks = interp1(times, linspace(1,numel(t),10), times);
-time_labels = arrayfun(@(x) sprintf('%.2f',x), times, 'UniformOutput', false);
+time_labels = arrayfun(@(x) sprintf('%.0f',x), times, 'UniformOutput', false);
 set(gca, 'XTick', time_ticks, 'XTickLabel', time_labels);
 xlabel('Time (s)');
 

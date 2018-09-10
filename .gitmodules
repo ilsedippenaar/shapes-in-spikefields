@@ -4,3 +4,6 @@
 [submodule "code/matlab/external/fieldtrip"]
 	path = code/matlab/external/fieldtrip
 	url = https://github.com/fieldtrip/fieldtrip.git
+[submodule "code/matlab/external/ssa"]
+	path = code/matlab/external/ssa
+	url = https://github.com/anton-a-tkachev/SSA-for-Matlab.git

@@ -7,7 +7,11 @@ if ndims(cohs) == 3
 end
 s = size(cohs);
 assert(s(2) == 96 && s(3) == 96);
-num_trials = s(end);
+if numel(s) == 3
+  num_trials = 1;
+else
+  num_trials = s(end);
+end
 % collapse inner dims for easy indexing
 cohs = reshape(cohs, [s(1), 96*96, num_trials]);
 
