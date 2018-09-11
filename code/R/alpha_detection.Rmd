@@ -1,0 +1,169 @@
+---
+output: pdf_document
+---
+
+```{r, echo=F, warning=F, message=F}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+library(pracma)
+library(cowplot)
+library(latex2exp)
+library(R.matlab)
+library(zoo)
+library(png)
+library(grid)
+
+folder_name <- 'alpha_detection'
+analysis_type <- 'shape'
+should_save <- T
+source('config.R')
+source('plotting.R')
+```
+
+```{r, fig.cap="Figure 1: Coherence"}
+plot_a_zorin <- plot_binned_coh('1_prenoise_zorin') + ggtitle("Prenoise")
+plot_a_jaws <- plot_binned_coh('1_prenoise_jaws')
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_b_zorin <- plot_binned_coh('1_shape_zorin') + ggtitle("Shape")
+plot_b_jaws <- plot_binned_coh('1_shape_jaws')
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow = 1)
+
+plot_c_zorin <- plot_binned_coh('1_postshape_zorin') + ggtitle("Postshape")
+plot_c_jaws <- plot_binned_coh('1_postshape_jaws')
+plot_c <- plot_grid(plot_c_zorin, plot_c_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_b, plot_c, labels = "AUTO", ncol = 1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '1.pdf'), p, 
+                        height = 12, width = 12, units = 'in') 
+} else print(p)
+```
+
+```{r, fig.cap="Figure 2: Performance and LFP power and phase"}
+plot_a_zorin <- std_dev_plot_from_mat(paste0('2_a_', analysis_type,'_zorin'), 
+                                     color = c('red', 'blue'), 
+                                     legend_labels = c("Low", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success rate")
+plot_a_jaws <- std_dev_plot_from_mat(paste0('2_a_', analysis_type,'_jaws'), 
+                                     color = c('red', 'blue'), 
+                                     legend_labels = c("Low", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success rate")
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_b_zorin <- plot_phase_success(paste0('2_b_', analysis_type,'_zorin'))
+plot_b_jaws <- plot_phase_success(paste0('2_b_', analysis_type,'_jaws'))
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_b, labels = "AUTO", ncol = 1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '2.pdf'), p, 
+                        height = 10, width = 10, units = 'in') 
+} else print(p)
+```
+
+```{r, fig.cap="Figure 3: Spike density"}
+plot_a_zorin <- std_dev_plot_from_mat(paste0('3_a_', analysis_type,'_zorin'),
+                                      color=c("seagreen4", "red"),
+                                      legend_labels = c("Success", "Failure")) +
+  labs(x = "Time (ms)", y = "Spike density (per neuron)") +
+  theme(legend.text = element_text(size=10)) +
+  ggtitle("Zorin")
+plot_a_jaws <- std_dev_plot_from_mat(paste0('3_a_', analysis_type,'_jaws'),
+                                     color=c("seagreen4", "red"),
+                                     legend_labels = c("Success", "Failure")) +
+  labs(x = "Time (ms)", y = "Spike density (per neuron)") +
+  theme(legend.text = element_text(size=10)) +
+  ggtitle("Jaws")
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, labels = "AUTO", ncol = 1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '3.pdf'), p, 
+                        height = 5, width = 10, units = 'in') 
+} else print(p)
+```
+
+```{r, fig.cap="Figure 4: Phase locking"}
+ylimits <- c(-0.3, 0.3)
+
+plot_a_zorin <- std_dev_plot_from_mat(paste0('4_a_', analysis_type,'_zorin'),
+                                     color=c("seagreen4", "red"),
+                                     legend_labels = c("Success", "Failure")) +
+  geom_hline(aes(yintercept = 0), linetype = 'dashed') +
+  ylim(ylimits) +
+  labs(x = "Frequency (Hz)", y = "PPC") +
+  theme(legend.text = element_text(size=10)) +
+  ggtitle("Zorin, Low Alpha Power")
+plot_a_jaws <- std_dev_plot_from_mat(paste0('4_a_', analysis_type,'_jaws'),
+                                     color=c("seagreen4", "red"),
+                                     legend_labels = c("Success", "Failure")) +
+  geom_hline(aes(yintercept = 0), linetype = 'dashed') +
+  ylim(ylimits) +
+  labs(x = "Frequency (Hz)", y = "PPC") +
+  theme(legend.text = element_text(size=10)) +
+  ggtitle("Jaws, Low Alpha Power")
+plot_a <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+
+plot_b_zorin <- std_dev_plot_from_mat(paste0('4_b_', analysis_type,'_zorin'),
+                                     color=c("seagreen4", "red"),
+                                     legend_labels = c("Success", "Failure")) +
+  geom_hline(aes(yintercept = 0), linetype = 'dashed') +
+  ylim(ylimits) +
+  labs(x = "Frequency (Hz)", y = "PPC") +
+  theme(legend.text = element_text(size=10)) +
+  ggtitle("Zorin, High Alpha Power")
+plot_b_jaws <- std_dev_plot_from_mat(paste0('4_b_', analysis_type,'_jaws'),
+                                     color=c("seagreen4", "red"),
+                                     legend_labels = c("Success", "Failure")) +
+  geom_hline(aes(yintercept = 0), linetype = 'dashed') +
+  ylim(ylimits) +
+  labs(x = "Frequency (Hz)", y = "PPC") +
+  theme(legend.text = element_text(size=10)) +
+  ggtitle("Jaws, High Alpha Power")
+plot_b <- plot_grid(plot_b_zorin, plot_b_jaws, nrow = 1)
+
+p <- plot_grid(plot_a, plot_b, labels = "AUTO", ncol = 1)
+
+if (should_save) {
+  ggsave(file.path(plot_save_dir, folder_name, '4.pdf'), plot_b, 
+                        height = 10, width = 10, units = 'in') 
+} else print(p)
+```
+
+```{r}
+plot_a_zorin <- std_dev_plot_from_mat(paste0('false_alarm_prenoise', '_zorin'), 
+                                     color = c('red', 'blue'), 
+                                     legend_labels = c("Low", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success rate")
+plot_a_jaws <- std_dev_plot_from_mat(paste0('false_alarm_prenoise', '_jaws'), 
+                                     color = c('red', 'blue'), 
+                                     legend_labels = c("Low", "High")) +
+  labs(x = "Frequency (Hz)", y = "Success rate")
+p <- plot_grid(plot_a_zorin, plot_a_jaws, nrow = 1)
+ggsave(file.path(plot_save_dir, folder_name, 'false_alarm.png'), p, 
+                        height = 4, width = 8, units = 'in')
+```
+
+```{r}
+# saccade - shape
+plot_zorin <- plot_rxn_time_power_bin('reaction_time_zorin', 'Z')
+plot_jaws <- plot_rxn_time_power_bin('reaction_time_jaws', 'J')
+p <- plot_grid(plot_zorin, plot_jaws, nrow=1)
+ggsave(file.path(plot_save_dir, folder_name, 'reaction_time.png'), p, 
+                        height = 4, width = 8, units = 'in')
+```
+```{r}
+# saccade - noise
+plot_zorin <- plot_rxn_time_power_bin('reaction_time_zorin', 'Z')
+plot_jaws <- plot_rxn_time_power_bin('reaction_time2_jaws', 'J')
+p <- plot_grid(plot_zorin, plot_jaws, nrow=1)
+ggsave(file.path(plot_save_dir, folder_name, 'reaction_time.png'), p, 
+                        height = 4, width = 8, units = 'in')
+```
+
