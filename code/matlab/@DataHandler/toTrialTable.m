@@ -4,8 +4,10 @@ function tbl = toTrialTable(obj)
 
 % sometimes there are 2 time points in a condition - these are just useless
 % trials
+trial_idxs = (1:obj.num_trials)';
 valid_trials = arrayfun(@(x) all(cellfun(@numel, x.sections) < 2), obj.trials);
 trials = obj.trials(valid_trials);
+trial_idxs = trial_idxs(valid_trials);
 sections = vertcat(trials.sections);
 saccade = {trials.saccade}';
 sections = [sections(:,2:5), saccade, sections(:,6)]; % start, fix, noise, shape, saccade, stop
@@ -17,7 +19,9 @@ end
 disp(obj.date)
 sections = cellfun(@(c) c, sections); % num_trials x 6 double
 % sanity check - remove rows that have nan for either start or stop
-sections = sections(~or(isnan(sections(:,1)), isnan(sections(:,end))),:);
+valid_trials = ~or(isnan(sections(:,1)), isnan(sections(:,end)));
+sections = sections(valid_trials,:);
+trial_idxs = trial_idxs(valid_trials);
 
 num_trials = size(sections,1);
 [ids, lfps, spikes] = deal(cell(num_trials, 1));
@@ -30,13 +34,12 @@ end
 
 sections = mat2cell(sections, size(sections,1), ones(1,size(sections,2)));
 date = repelem({obj.date}, num_trials, 1);
-num = (1:num_trials)';
 monkey_name = repelem({obj.monkey_name}, num_trials, 1);
 electrode_mapping = repelem({obj.electrode_mapping},num_trials,1);
 shapeid = [trials.shapeid]';
 shapecoh = [trials.shapecoh]';
 result = {trials.result}';
-tbl = table(ids, date, num, monkey_name, lfps, spikes, electrode_mapping, sections{:}, shapeid, shapecoh, result, ...
+tbl = table(ids, date, trial_idxs, monkey_name, lfps, spikes, electrode_mapping, sections{:}, shapeid, shapecoh, result, ...
   'VariableNames', {'id','date','num','monkey_name', 'lfps', 'spikes','electrode_mapping', ...
                     'start', 'fixate', 'noise', 'shape', 'saccade', 'stop', 'shapeid', 'shapecoh', 'result'});
 end

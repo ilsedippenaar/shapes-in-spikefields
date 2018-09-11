@@ -7,6 +7,7 @@ addpath(genpath('external/chronux_2_11'))
 addpath external/hht
 addpath external/kl_div
 addpath external/InfoTheory
+addpath external/ssa
 addpath external/fieldtrip
 ft_defaults;
 

@@ -1,4 +1,10 @@
 function tbl = makeTrialTable(days, trial_dir, lfp_dir, dh_dir, save_dir, select_type, varargin)
+p = inputParser;
+p.addParameter('dh_args', {});
+p.addParameter('split_dh', true);
+p.parse(varargin{:});
+args = p.Results;
+
 if ischar(days)
   days = {days};
 end
@@ -17,11 +23,15 @@ for i=1:numel(days)
       tbls{i} = tmp.tbl;
     end
   else
-    dh = DataHandler.fromDates(d, trial_dir, lfp_dir, dh_dir, varargin{:});
+    dh = DataHandler.fromDates(d, trial_dir, lfp_dir, dh_dir, args.dh_args{:});
     if isempty(dh) || isempty(dh.lfps)
       continue
     end
-    dhs = dh.split();
+    if args.split_dh
+      dhs = dh.split();
+    else
+      dhs = {dh};
+    end
     dhs = [dhs{:}];
     dhs = dhs([dhs.num_trials] ~= 0);
     dhs = dhs(~cellfun(@isempty, {dhs.lfps}));

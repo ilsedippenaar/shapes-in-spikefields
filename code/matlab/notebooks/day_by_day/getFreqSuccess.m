@@ -8,6 +8,6 @@ x = freqs(freqs < freq_cutoff);
 y = success_rate(:, freqs < freq_cutoff)';
 % take binomial (bernoulli) error for success rates
 n = success_counts + failure_counts;
-std_err = sqrt(success_rate .* (1-success_rate) ./ n);
+std_err = sqrt(success_rate .* (1-success_rate) ./ n) * 1.96;
 std_err = std_err(:, freqs < freq_cutoff)';
 end

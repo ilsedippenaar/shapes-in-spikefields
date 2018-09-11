@@ -85,7 +85,7 @@ end
 if args.melt
   trial_nums = args.trial_nums;
   start_trial = floor(obj.trials(trial_nums(1)).sections{1}); % assume trial_nums is contiguous
-  stop_trial = ceil(obj.trials(trial_nums(end)).sections{end});
+  stop_trial = ceil(obj.trials(trial_nums(end)).sections{end-1}); % sometimes sections{end}<sections{end-1} for some reason
   between = intersectInterval(between, [start_trial stop_trial]);
 else
   all_results = {obj.trials.result};

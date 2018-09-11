@@ -4,11 +4,16 @@ switch trial_section
   case -1
     start = obj.trials(trial_num).sections{5};
     if isempty(start)
-      error('There must a a shape for selecting between shape and saccade');
+      return
+      %error('There must a a shape for selecting between shape and saccade');
     end
     section = [start obj.trials(trial_num).saccade];
     if numel(section) ~= 2
-      error('There must a a saccade for selecting between shape and saccade');
+      return
+      %error('There must a a saccade for selecting between shape and saccade');
+    end
+    if section(1) > section(2)
+      return
     end
   case -2
     start = obj.trials(trial_num).saccade;
